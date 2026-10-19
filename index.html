@@ -43,8 +43,9 @@
                         <option value="">No. Dep ˅</option>
                     </select>
 
-                    <select id="filterNomenclatura" onchange="aplicarFiltros()">
-                        <option value="">Nomenclatura ˅</option>
+                    <!-- SE SUSTITUYE NOMENCLATURA POR FILTRO DE ESTADO -->
+                    <select id="filterEstado" onchange="aplicarFiltros()">
+                        <option value="">Estado ˅</option>
                     </select>
 
                     <select id="filterTipologia" onchange="aplicarFiltros()">
@@ -71,15 +72,15 @@
             <div class="stats-summary">
                 <div class="stat-card">
                     <div class="label">Total Camas Ocupadas</div>
-                    <div class="val" id="statTotal">20</div>
+                    <div class="val" id="statTotal">0</div>
                 </div>
                 <div class="stat-card">
                     <div class="label">Contratos Vigentes</div>
-                    <div class="val" id="statVigentes">13</div>
+                    <div class="val" id="statVigentes">0</div>
                 </div>
                 <div class="stat-card">
                     <div class="label">Por Vencer / Vence pronto</div>
-                    <div class="val" id="statPorVencer">7</div>
+                    <div class="val" id="statPorVencer">0</div>
                 </div>
             </div>
 
@@ -90,18 +91,18 @@
                         <tr>
                             <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
                             <th>Nombre Residentes ▴</th>
+                            <th>Género</th>
                             <th>Nivel</th>
                             <th>No. Dep</th>
-                            <th>Nomenclatura (Espacio)</th>
-                            <th>Tipología</th>
-                            <th>Contrato Vence</th>
-                            <th>Cajón Estacionamiento</th>
+                            <th>Nomenclatura</th>
+                            <th>Move-in</th>
+                            <th>Move-out (Vence)</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tablaBody">
-                        <!-- Llenado dinámico -->
+                        <!-- Llenado dinámico desde la Base de Datos -->
                     </tbody>
                 </table>
             </div>
@@ -141,23 +142,32 @@
                             <input type="text" id="inpApellidos" placeholder="Ej. Hernández">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Género:</label>
+                            <select id="inpGenero">
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="tab-content" id="tab-contrato">
                     <div class="form-row">
                         <div class="form-col">
                             <label>Nivel:</label>
-                            <input type="text" id="inpNivel" placeholder="Ej. N2">
+                            <input type="text" id="inpNivel" placeholder="Ej. N1">
                         </div>
                         <div class="form-col">
                             <label>No. Departamento:</label>
-                            <input type="text" id="inpDep" placeholder="Ej. 201">
+                            <input type="text" id="inpDep" placeholder="Ej. 101">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-col">
                             <label>Nomenclatura:</label>
-                            <input type="text" id="inpNomenclatura" placeholder="Ej. 201-A1">
+                            <input type="text" id="inpNomenclatura" placeholder="Ej. 101-A1">
                         </div>
                         <div class="form-col">
                             <label>Tipología:</label>
@@ -166,21 +176,22 @@
                                 <option value="party">party</option>
                                 <option value="party double">party double</option>
                                 <option value="double">double</option>
+                                <option value="crew">crew</option>
+                                <option value="master">master</option>
+                                <option value="squad">squad</option>
+                                <option value="loft">loft</option>
+                                <option value="deluxe">deluxe</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-col">
-                            <label>Vencimiento Contrato:</label>
-                            <input type="date" id="inpVencimiento">
+                            <label>Fecha Move-in:</label>
+                            <input type="date" id="inpMoveIn">
                         </div>
                         <div class="form-col">
-                            <label>Estado del Contrato:</label>
-                            <select id="inpEstado">
-                                <option value="Vigente">Vigente</option>
-                                <option value="Por vencer">Por vencer</option>
-                                <option value="Vence pronto">Vence pronto</option>
-                            </select>
+                            <label>Fecha Move-out:</label>
+                            <input type="date" id="inpVencimiento">
                         </div>
                     </div>
                 </div>
@@ -201,6 +212,22 @@
 
             <div class="modal-footer">
                 <button class="btn-save" onclick="guardarResidente()">Guardar Residente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA FLOTANTE: DETALLES COMPLETOS DEL RESIDENTE -->
+    <div class="modal-overlay" id="modalDetallesOverlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Expediente Completo del Residente</h3>
+                <button class="modal-close" onclick="cerrarModalDetalles()">✕</button>
+            </div>
+            <div class="modal-body" id="detallesContenido">
+                <!-- Se llena dinámicamente desde JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-save" onclick="cerrarModalDetalles()">Cerrar</button>
             </div>
         </div>
     </div>

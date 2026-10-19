@@ -294,23 +294,26 @@ tr:hover { background-color: #f8fafc; }
 .btn-table {
     background: #ffffff;
     border: 1px solid #cbd5e1;
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 6px;
     font-size: 0.78rem;
     cursor: pointer;
     color: #334155;
     margin-right: 3px;
+    font-weight: 600;
 }
 
 .btn-table:hover { background: #f1f5f9; }
 
-.btn-delete {
-    background-color: #fef2f2;
-    border-color: #fca5a5;
-    color: #dc2626;
+.btn-details {
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
 }
 
-.btn-delete:hover { background-color: #fee2e2; }
+.btn-details:hover {
+    background-color: #dcfce7;
+}
 
 footer {
     background-color: #ffffff;

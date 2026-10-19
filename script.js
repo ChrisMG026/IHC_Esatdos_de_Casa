@@ -1,30 +1,74 @@
-let residentesData = [
-    { id: 1, nivel: "PB", dep: "101", tipologia: "twin", nomenclatura: "101-A1", nombre: "Ana García López", vencimiento: "2026-11-15", status: "Vence pronto", cajon: "B12", placas: "XYZ-1234" },
-    { id: 2, nivel: "PB", dep: "102", tipologia: "party", nomenclatura: "102-A1", nombre: "Carlos Mendoza Ruiz", vencimiento: "2027-03-20", status: "Vigente", cajon: "A05", placas: "ABC-9876" },
-    { id: 3, nivel: "N2", dep: "201", tipologia: "twin", nomenclatura: "201-A1", nombre: "Juan Pérez Martínez", vencimiento: "2026-12-10", status: "Por vencer", cajon: "C01", placas: "LMN-4567" },
-    { id: 4, nivel: "N2", dep: "202", tipologia: "party", nomenclatura: "202-A1", nombre: "Mariana Torres Silva", vencimiento: "2027-05-18", status: "Vigente", cajon: "B04", placas: "JHG-3321" },
-    { id: 5, nivel: "N3", dep: "301", tipologia: "twin", nomenclatura: "301-A1", nombre: "Luis Fernando Gómez", vencimiento: "2026-10-30", status: "Vence pronto", cajon: "D10", placas: "PQR-1122" },
-    { id: 6, nivel: "N3", dep: "302", tipologia: "party double", nomenclatura: "302-A1", nombre: "Sofía Hernández Cruz", vencimiento: "2027-08-01", status: "Vigente", cajon: "A12", placas: "STU-8899" },
-    { id: 7, nivel: "N4", dep: "401", tipologia: "twin", nomenclatura: "401-A1", nombre: "Diego Ramírez Vega", vencimiento: "2027-01-15", status: "Vigente", cajon: "B08", placas: "VWX-5544" },
-    { id: 8, nivel: "N4", dep: "402", tipologia: "party double", nomenclatura: "402-A1", nombre: "Valeria Morales Castro", vencimiento: "2026-11-28", status: "Por vencer", cajon: "C15", placas: "YZA-7711" },
-    { id: 9, nivel: "N5", dep: "501", tipologia: "twin", nomenclatura: "501-B1", nombre: "Mateo Delgado Ortiz", vencimiento: "2027-06-10", status: "Vigente", cajon: "A02", placas: "BCD-9900" },
-    { id: 10, nivel: "N5", dep: "502", tipologia: "party double", nomenclatura: "502-A1", nombre: "Camila Castillo Navarro", vencimiento: "2026-12-05", status: "Por vencer", cajon: "E04", placas: "EFG-3344" }
-];
+let residentesData = [];
 
+// 1. CARGAR DATOS DESDE LA BASE DE DATOS
+async function cargarResidentesDesdeBD() {
+    try {
+        let response = await fetch('api_residentes.php');
+        residentesData = await response.json();
+        
+        // Calcular estados y tiempo restante dinámicamente por fecha
+        residentesData.forEach(item => {
+            item.status = calcularEstadoContrato(item.fecha_move_out);
+            item.tiempoRestante = calcularTiempoRestante(item.fecha_move_out);
+        });
+
+        inicializarFiltros();
+        renderTabla();
+    } catch (error) {
+        console.error("Error al conectar con la base de datos:", error);
+    }
+}
+
+// 2. CÁLCULO DE ESTADO DEL CONTRATO SEGÚN LA FECHA
+function calcularEstadoContrato(fechaMoveOut) {
+    if (!fechaMoveOut) return "Sin Contrato";
+    
+    let hoy = new Date();
+    let salida = new Date(fechaMoveOut);
+    let diffDias = Math.ceil((salida - hoy) / (1000 * 60 * 60 * 24));
+
+    if (diffDias < 0) return "Vencido";
+    if (diffDias <= 30) return "Vence pronto";
+    if (diffDias <= 90) return "Por vencer";
+    return "Vigente";
+}
+
+// 3. CÁLCULO DE TIEMPO RESTANTE EN MESES Y DÍAS
+function calcularTiempoRestante(fechaMoveOut) {
+    if (!fechaMoveOut) return "N/A";
+    let hoy = new Date();
+    let fin = new Date(fechaMoveOut);
+    
+    if (fin < hoy) return "Contrato finalizado";
+
+    let meses = (fin.getFullYear() - hoy.getFullYear()) * 12 + (fin.getMonth() - hoy.getMonth());
+    let dias = fin.getDate() - hoy.getDate();
+
+    if (dias < 0) {
+        meses--;
+        let ultimoDiaMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate();
+        dias += ultimoDiaMesAnterior;
+    }
+
+    return `${meses} meses y ${dias} días restantes`;
+}
+
+// 4. FILTROS DINÁMICOS (CON FILTRO DE ESTADO EN LUGAR DE NOMENCLATURA)
 function inicializarFiltros() {
-    let niveles = [...new Set(residentesData.map(item => item.nivel))];
-    let deps = [...new Set(residentesData.map(item => item.dep))];
-    let nomenclaturas = [...new Set(residentesData.map(item => item.nomenclatura))];
-    let tipologias = [...new Set(residentesData.map(item => item.tipologia))];
+    let niveles = [...new Set(residentesData.map(item => item.nivel).filter(Boolean))];
+    let deps = [...new Set(residentesData.map(item => item.dep).filter(Boolean))];
+    let estados = [...new Set(residentesData.map(item => item.status).filter(Boolean))];
+    let tipologias = [...new Set(residentesData.map(item => item.tipologia).filter(Boolean))];
 
     poblarSelect('filterNivel', niveles, 'Nivel ');
     poblarSelect('filterDep', deps, 'No. Dep ');
-    poblarSelect('filterNomenclatura', nomenclaturas, 'Nomenclatura ');
+    poblarSelect('filterEstado', estados, 'Estado ');
     poblarSelect('filterTipologia', tipologias, 'Tipología ');
 }
 
 function poblarSelect(id, opciones, tituloDefault) {
     let select = document.getElementById(id);
+    if (!select) return;
     select.innerHTML = `<option value="">${tituloDefault}</option>`;
     opciones.sort().forEach(op => {
         select.innerHTML += `<option value="${op}">${op}</option>`;
@@ -35,44 +79,57 @@ function aplicarFiltros() {
     let query = document.getElementById('searchInput').value.toLowerCase();
     let valNivel = document.getElementById('filterNivel').value;
     let valDep = document.getElementById('filterDep').value;
-    let valNom = document.getElementById('filterNomenclatura').value;
+    let valEstado = document.getElementById('filterEstado').value;
     let valTipo = document.getElementById('filterTipologia').value;
 
     let filtrados = residentesData.filter(item => {
-        let matchQuery = item.nombre.toLowerCase().includes(query) || item.nomenclatura.toLowerCase().includes(query);
+        let matchQuery = (item.nombre && item.nombre.toLowerCase().includes(query)) || 
+                         (item.nomenclatura && item.nomenclatura.toLowerCase().includes(query));
         let matchNivel = !valNivel || item.nivel === valNivel;
-        let matchDep = !valDep || item.dep === valDep;
-        let matchNom = !valNom || item.nomenclatura === valNom;
+        let matchDep = !valDep || item.dep == valDep;
+        let matchEstado = !valEstado || item.status === valEstado;
         let matchTipo = !valTipo || item.tipologia === valTipo;
 
-        return matchQuery && matchNivel && matchDep && matchNom && matchTipo;
+        return matchQuery && matchNivel && matchDep && matchEstado && matchTipo;
     });
 
     renderTabla(filtrados);
 }
 
+// 5. RENDERIZADO DE TABLA PRINCIPAL
 function renderTabla(datos = residentesData) {
     let tbody = document.getElementById('tablaBody');
     tbody.innerHTML = '';
 
     datos.forEach((item, index) => {
-        let badgeDateClass = item.status === 'Vence pronto' ? 'bg-red' : (item.status === 'Por vencer' ? 'bg-yellow' : 'bg-green');
-        let badgeStatusClass = item.status === 'Vence pronto' ? 'status-red' : (item.status === 'Por vencer' ? 'status-yellow' : 'status-green');
+        let badgeStatusClass = 'status-green';
+        let bgDateClass = 'bg-green';
+
+        if (item.status === 'Vence pronto' || item.status === 'Vencido') {
+            badgeStatusClass = 'status-red';
+            bgDateClass = 'bg-red';
+        } else if (item.status === 'Por vencer') {
+            badgeStatusClass = 'status-yellow';
+            bgDateClass = 'bg-yellow';
+        } else if (item.status === 'Sin Contrato') {
+            badgeStatusClass = 'status-green'; // o clase neutra según preferencia
+            bgDateClass = 'bg-green';
+        }
 
         let row = `
             <tr>
                 <td><input type="checkbox" class="row-checkbox" value="${index}"></td>
                 <td><strong>${item.nombre}</strong></td>
-                <td>${item.nivel}</td>
-                <td>Dep. ${item.dep}</td>
-                <td><span style="font-weight:700; color:#4f46e5;">${item.nomenclatura}</span></td>
-                <td><span style="font-size:0.8rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${item.tipologia}</span></td>
-                <td><span class="badge-date ${badgeDateClass}">${item.vencimiento}</span></td>
-                <td>${item.cajon}</td>
+                <td>${item.genero || 'N/A'}</td>
+                <td>${item.nivel || 'N/A'}</td>
+                <td>Dep. ${item.dep || 'N/A'}</td>
+                <td><span style="font-weight:700; color:#4f46e5;">${item.nomenclatura || 'N/A'}</span></td>
+                <td>${item.fecha_move_in || 'N/A'}</td>
+                <td><span class="badge-date ${bgDateClass}">${item.fecha_move_out || 'N/A'}</span></td>
                 <td><span class="badge-status ${badgeStatusClass}">${item.status}</span></td>
                 <td>
+                    <button class="btn-table btn-details" onclick="verDetalles(${index})">👁️ Ver Detalles</button>
                     <button class="btn-table" onclick="editarResidente(${index})">✏️ Editar</button>
-                    <button class="btn-table btn-delete" onclick="eliminarResidente(${index})">Move-out</button>
                 </td>
             </tr>
         `;
@@ -85,108 +142,83 @@ function renderTabla(datos = residentesData) {
     document.getElementById('statPorVencer').innerText = residentesData.length - vigentes;
 }
 
-/* --- FUNCIONALIDAD: NUEVO REGISTRO (MOVE-IN) --- */
+// 6. VENTANA FLOTANTE: VER DETALLES COMPLETOS
+function verDetalles(index) {
+    let res = residentesData[index];
+    let claveHabitacion = res.clave_maestra || "1234-KEY";
+
+    let htmlContenido = `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <p><strong>Residente:</strong> ${res.nombre} (${res.genero || 'No especificado'})</p>
+            <p><strong>Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'} (${res.nomenclatura || 'N/A'})</p>
+            <p><strong>Tipología:</strong> ${res.tipologia || 'Sencilla'}</p>
+            <p><strong>Monto Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
+            <hr style="border:none; border-top:1px solid #e2e8f0;">
+            <p><strong>Periodo Contrato:</strong> ${res.fecha_move_in || 'N/A'} al ${res.fecha_move_out || 'N/A'}</p>
+            <p><strong>Tiempo Restante:</strong> <span style="color:#6366f1; font-weight:700;">${res.tiempoRestante}</span></p>
+            <p><strong>Estacionamiento:</strong> ${res.cajon ? 'Cajón ' + res.cajon : 'Sin cajón asignado'}</p>
+            <hr style="border:none; border-top:1px solid #e2e8f0;">
+            <div style="background:#f8fafc; padding:12px; border-radius:8px; display:flex; align-items:center; justify-content:space-between; border:1px solid #e2e8f0;">
+                <div>
+                    <strong style="font-size:0.85rem; color:#475569;">Clave Maestra Habitación:</strong><br>
+                    <input type="password" id="claveInput" value="${claveHabitacion}" readonly style="border:none; background:transparent; font-size:1.1rem; font-weight:bold; letter-spacing:3px; outline:none; width:130px;">
+                </div>
+                <button class="btn-table" onclick="toggleClave()">👁️ Mostrar / Ocultar</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('detallesContenido').innerHTML = htmlContenido;
+    document.getElementById('modalDetallesOverlay').style.display = 'flex';
+}
+
+function toggleClave() {
+    let input = document.getElementById('claveInput');
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function cerrarModalDetalles() {
+    document.getElementById('modalDetallesOverlay').style.display = 'none';
+}
+
+// 7. FUNCIONES DE MODAL CREAR / EDITAR
 function abrirModalCrear() {
     document.getElementById('modalTitulo').innerText = 'Nuevo Registro (Move-in)';
     document.getElementById('editIndex').value = '-1';
     
     document.getElementById('inpNombre').value = '';
     document.getElementById('inpApellidos').value = '';
-    document.getElementById('inpNivel').value = 'PB';
-    document.getElementById('inpDep').value = '103';
-    document.getElementById('inpNomenclatura').value = '103-A1';
+    document.getElementById('inpGenero').value = 'Masculino';
+    document.getElementById('inpNivel').value = 'N1';
+    document.getElementById('inpDep').value = '101';
+    document.getElementById('inpNomenclatura').value = '101-A1';
     document.getElementById('inpTipologia').value = 'twin';
+    document.getElementById('inpMoveIn').value = '2026-07-01';
     document.getElementById('inpVencimiento').value = '2027-06-30';
-    document.getElementById('inpEstado').value = 'Vigente';
-    document.getElementById('inpCajon').value = 'B01';
-    document.getElementById('inpPlacas').value = 'ABC-1234';
+    document.getElementById('inpCajon').value = '';
+    document.getElementById('inpPlacas').value = '';
 
     document.getElementById('modalOverlay').style.display = 'flex';
 }
 
-/* --- FUNCIONALIDAD: EDITAR REGISTRO --- */
 function editarResidente(index) {
     let res = residentesData[index];
     document.getElementById('modalTitulo').innerText = `Editar Expediente: ${res.nombre}`;
     document.getElementById('editIndex').value = index;
 
-    let partes = res.nombre.split(' ');
+    let partes = (res.nombre || '').split(' ');
     document.getElementById('inpNombre').value = partes[0] || '';
     document.getElementById('inpApellidos').value = partes.slice(1).join(' ') || '';
-    document.getElementById('inpNivel').value = res.nivel;
-    document.getElementById('inpDep').value = res.dep;
-    document.getElementById('inpNomenclatura').value = res.nomenclatura;
-    document.getElementById('inpTipologia').value = res.tipologia;
-    document.getElementById('inpVencimiento').value = res.vencimiento;
-    document.getElementById('inpEstado').value = res.status;
-    document.getElementById('inpCajon').value = res.cajon;
-    document.getElementById('inpPlacas').value = res.placas;
+    document.getElementById('inpGenero').value = res.genero || 'Masculino';
+    document.getElementById('inpNivel').value = res.nivel || '';
+    document.getElementById('inpDep').value = res.dep || '';
+    document.getElementById('inpNomenclatura').value = res.nomenclatura || '';
+    document.getElementById('inpTipologia').value = res.tipologia || 'twin';
+    document.getElementById('inpMoveIn').value = res.fecha_move_in || '';
+    document.getElementById('inpVencimiento').value = res.fecha_move_out || '';
+    document.getElementById('inpCajon').value = res.cajon || '';
 
     document.getElementById('modalOverlay').style.display = 'flex';
-}
-
-/* --- GUARDAR RESIDENTE (ALTA O EDICIÓN) --- */
-function guardarResidente() {
-    let index = parseInt(document.getElementById('editIndex').value);
-    let nombre = document.getElementById('inpNombre').value.trim();
-    let apellidos = document.getElementById('inpApellidos').value.trim();
-    let nombreCompleto = `${nombre} ${apellidos}`.trim();
-
-    if (!nombreCompleto) {
-        alert('Ingresa el nombre del residente.');
-        return;
-    }
-
-    let nuevoResidente = {
-        id: index >= 0 ? residentesData[index].id : Date.now(),
-        nombre: nombreCompleto,
-        nivel: document.getElementById('inpNivel').value || 'PB',
-        dep: document.getElementById('inpDep').value || '101',
-        nomenclatura: document.getElementById('inpNomenclatura').value || '101-A1',
-        tipologia: document.getElementById('inpTipologia').value,
-        vencimiento: document.getElementById('inpVencimiento').value || '2027-12-31',
-        status: document.getElementById('inpEstado').value,
-        cajon: document.getElementById('inpCajon').value || 'Sin asignar',
-        placas: document.getElementById('inpPlacas').value || 'N/A'
-    };
-
-    if (index >= 0) {
-        residentesData[index] = nuevoResidente;
-    } else {
-        residentesData.unshift(nuevoResidente);
-    }
-
-    cerrarModal();
-    inicializarFiltros();
-    aplicarFiltros();
-}
-
-/* --- FUNCIONALIDAD: REGISTRAR SALIDA (MOVE-OUT) POR BOTÓN PRINCIPAL --- */
-function procesarSalidaSeleccionados() {
-    let checkboxes = document.querySelectorAll('.row-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('Selecciona al menos una casilla de la tabla para registrar la salida del residente.');
-        return;
-    }
-
-    if (confirm(`¿Confirmas la salida (Move-out) de los ${checkboxes.length} residentes seleccionados?`)) {
-        let indicesAEliminar = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a, b) => b - a);
-        indicesAEliminar.forEach(idx => residentesData.splice(idx, 1));
-        
-        document.getElementById('selectAll').checked = false;
-        inicializarFiltros();
-        aplicarFiltros();
-    }
-}
-
-/* --- SALIDA INDIVIDUAL POR FILA --- */
-function eliminarResidente(index) {
-    let res = residentesData[index];
-    if (confirm(`¿Registrar salida (Move-out) de "${res.nombre}" del departamento ${res.dep}?`)) {
-        residentesData.splice(index, 1);
-        inicializarFiltros();
-        aplicarFiltros();
-    }
 }
 
 function cerrarModal() {
@@ -204,7 +236,24 @@ function toggleSelectAll(master) {
     document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = master.checked);
 }
 
+function procesarSalidaSeleccionados() {
+    let checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('Selecciona al menos una casilla de la tabla para registrar la salida del residente.');
+        return;
+    }
+
+    if (confirm(`¿Confirmas la salida (Move-out) de los ${checkboxes.length} residentes seleccionados?`)) {
+        let indicesAEliminar = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a, b) => b - a);
+        indicesAEliminar.forEach(idx => residentesData.splice(idx, 1));
+        
+        document.getElementById('selectAll').checked = false;
+        inicializarFiltros();
+        aplicarFiltros();
+    }
+}
+
+// CARGA INICIAL
 window.onload = function() {
-    inicializarFiltros();
-    renderTabla();
+    cargarResidentesDesdeBD();
 };
