@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Gestión de Residentes y Espacios</title>
     <!-- Vinculación del archivo CSS -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=1.2">
 </head>
 <body>
 
@@ -36,24 +36,28 @@
                 
                 <div class="filter-dropdowns">
                     <select id="filterNivel" onchange="aplicarFiltros()">
-                        <option value="">Nivel ˅</option>
+                        <option value="">Nivel</option>
                     </select>
 
                     <select id="filterDep" onchange="aplicarFiltros()">
-                        <option value="">No. Dep ˅</option>
+                        <option value="">No. Dep</option>
                     </select>
 
-                    <!-- SE SUSTITUYE NOMENCLATURA POR FILTRO DE ESTADO -->
                     <select id="filterEstado" onchange="aplicarFiltros()">
-                        <option value="">Estado ˅</option>
+                        <option value="">Estado</option>
                     </select>
 
                     <select id="filterTipologia" onchange="aplicarFiltros()">
-                        <option value="">Tipología ˅</option>
+                        <option value="">Tipología</option>
                     </select>
                 </div>
             </div>
             <div class="user-actions">
+                <!-- BOTÓN DE MODO OSCURO -->
+                <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
+                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                </button>
+
                 <span>🔔</span>
                 <span>👤 Admin ˅</span>
             </div>
@@ -63,8 +67,8 @@
             <div class="page-title-bar">
                 <h1>Gestión de Residentes y Espacios</h1>
                 <div class="action-buttons">
-                    <button class="btn-movein" onclick="abrirModalCrear()">+ NUEVO REGISTRO (Move-in)</button>
-                    <button class="btn-moveout" onclick="procesarSalidaSeleccionados()">REGISTRAR SALIDA (Move-out)</button>
+                    <button class="btn-movein" onclick="abrirModalCrear()">+ MOVE-IN</button>
+                    <button class="btn-moveout" onclick="procesarSalidaSeleccionados()">MOVE-OUT</button>
                 </div>
             </div>
 
@@ -96,7 +100,7 @@
                             <th>No. Dep</th>
                             <th>Nomenclatura</th>
                             <th>Move-in</th>
-                            <th>Move-out (Vence)</th>
+                            <th>Move-out</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
@@ -118,19 +122,20 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 id="modalTitulo">Nuevo Registro (Move-in)</h3>
+                <h3 id="modalTitulo">Nuevo Registro</h3>
                 <button class="modal-close" onclick="cerrarModal()">✕</button>
             </div>
 
             <div class="modal-tabs">
                 <div class="tab-item active" onclick="cambiarPestana('tab-personales', this)">1. Datos Personales</div>
                 <div class="tab-item" onclick="cambiarPestana('tab-contrato', this)">2. Contrato</div>
-                <div class="tab-item" onclick="cambiarPestana('tab-asignaciones', this)">3. Asignaciones</div>
+                <div class="tab-item" id="tabHeaderAsignaciones" style="display:none;" onclick="cambiarPestana('tab-asignaciones', this)">3. Asignaciones</div>
             </div>
 
             <div class="modal-body">
                 <input type="hidden" id="editIndex" value="-1">
 
+                <!-- PESTAÑA 1: DATOS PERSONALES -->
                 <div class="tab-content active" id="tab-personales">
                     <div class="form-row">
                         <div class="form-col">
@@ -150,61 +155,132 @@
                                 <option value="Femenino">Femenino</option>
                             </select>
                         </div>
+                        <div class="form-col">
+                            <label>Número de contacto:</label>
+                            <input type="text" id="inpTelefono" placeholder="Ej. 81 1234 5678">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Correo electrónico:</label>
+                            <input type="email" id="inpCorreo" placeholder="ejemplo@correo.com">
+                        </div>
+                        <div class="form-col">
+                            <label>¿Cuenta con vehículo personal?</label>
+                            <select id="inpTieneCarro" onchange="evaluarTieneCarro()">
+                                <option value="NO">NO</option>
+                                <option value="SI">SI</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row" id="rowDeseaRegistrarAuto" style="display:none;">
+                        <div class="form-col">
+                            <label>¿Desea registrar su auto?</label>
+                            <select id="inpDeseaRegistrarAuto" onchange="evaluarRegistrarAuto()">
+                                <option value="NO">NO</option>
+                                <option value="SI">SI</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
+                <!-- PESTAÑA 2: CONTRATO -->
                 <div class="tab-content" id="tab-contrato">
                     <div class="form-row">
                         <div class="form-col">
                             <label>Nivel:</label>
-                            <input type="text" id="inpNivel" placeholder="Ej. N1">
+                            <select id="inpNivelModal" onchange="onModalNivelChange()">
+                                <option value="">-- Seleccionar --</option>
+                            </select>
                         </div>
                         <div class="form-col">
                             <label>No. Departamento:</label>
-                            <input type="text" id="inpDep" placeholder="Ej. 101">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-col">
-                            <label>Nomenclatura:</label>
-                            <input type="text" id="inpNomenclatura" placeholder="Ej. 101-A1">
-                        </div>
-                        <div class="form-col">
-                            <label>Tipología:</label>
-                            <select id="inpTipologia">
-                                <option value="twin">twin</option>
-                                <option value="party">party</option>
-                                <option value="party double">party double</option>
-                                <option value="double">double</option>
-                                <option value="crew">crew</option>
-                                <option value="master">master</option>
-                                <option value="squad">squad</option>
-                                <option value="loft">loft</option>
-                                <option value="deluxe">deluxe</option>
+                            <select id="inpDepModal" onchange="onModalDepChange()">
+                                <option value="">-- Seleccionar --</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-col">
-                            <label>Fecha Move-in:</label>
-                            <input type="date" id="inpMoveIn">
+                            <label>Recámara:</label>
+                            <select id="inpRecamaraModal" onchange="actualizarNomenclaturaModal()">
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                            </select>
                         </div>
                         <div class="form-col">
-                            <label>Fecha Move-out:</label>
-                            <input type="date" id="inpVencimiento">
+                            <label>Cama:</label>
+                            <select id="inpCamaModal" onchange="actualizarNomenclaturaModal()">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Nomenclatura (Automática):</label>
+                            <input type="text" id="inpNomenclaturaModal" readonly style="background:var(--bg-main); font-weight:bold;">
+                        </div>
+                        <div class="form-col">
+                            <label>Tipología (Automática):</label>
+                            <input type="text" id="inpTipologiaModal" readonly style="background:var(--bg-main); font-weight:bold;">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Tipo de Contrato:</label>
+                            <select id="inpTipoContrato" onchange="recalcularFechasContrato()">
+                                <option value="12 meses">12 meses</option>
+                                <option value="6 meses">6 meses</option>
+                            </select>
+                        </div>
+                        <div class="form-col">
+                            <label>Renta (MXN):</label>
+                            <input type="number" id="inpRenta" placeholder="Ej. 10200">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Fecha Move-in (Hoy):</label>
+                            <input type="date" id="inpMoveInModal" style="background:var(--bg-main);">
+                        </div>
+                        <div class="form-col">
+                            <label>Fecha Move-out (Calculada):</label>
+                            <input type="date" id="inpMoveOutModal" style="background:var(--bg-main); font-weight:bold;">
                         </div>
                     </div>
                 </div>
 
+                <!-- PESTAÑA 3: ASIGNACIONES (AUTO) -->
                 <div class="tab-content" id="tab-asignaciones">
                     <div class="form-row">
                         <div class="form-col">
                             <label>Cajón de Estacionamiento:</label>
-                            <input type="text" id="inpCajon" placeholder="Ej. B12">
+                            <select id="inpCajonModal">
+                                <option value="">-- Seleccionar Cajón --</option>
+                            </select>
                         </div>
                         <div class="form-col">
+                            <label>Modelo del Auto:</label>
+                            <input type="text" id="inpModeloAuto" placeholder="Ej. Nissan Versa 2022">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <label>Color del Auto:</label>
+                            <input type="text" id="inpColorAuto" placeholder="Ej. Blanco / Gris">
+                        </div>
+                        <div class="form-col">
+                            <label>Número de Tag:</label>
+                            <input type="text" id="inpNumeroTag" placeholder="Ej. TAG-8849">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
                             <label>Placas:</label>
-                            <input type="text" id="inpPlacas" placeholder="Ej. XYZ-1234">
+                            <input type="text" id="inpPlacasModal" placeholder="Ej. XYZ-1234">
                         </div>
                     </div>
                 </div>
@@ -231,8 +307,40 @@
             </div>
         </div>
     </div>
+<!-- MODAL DE CONFIRMACIÓN DE MOVE-OUT -->
+<div id="modalMoveOutOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+    <div class="modal-card" style="max-width: 700px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; padding: 28px;">
+        <!-- Encabezado -->
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 18px;">
+            <h3 style="margin: 0; font-size: 1.25rem; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                ⚠️ Confirmación de Move-Out
+            </h3>
+            <span onclick="cerrarModalMoveOut()" style="cursor: pointer; font-size: 1.5rem; color: var(--text-secondary); line-height: 1;">&times;</span>
+        </div>
 
+        <!-- Texto introductorio simplificado -->
+        <p style="margin-bottom: 20px; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5;">
+            ¿Estás seguro de que quieres registrar la salida del o los siguientes residentes?
+        </p>
+
+        <!-- Contenedor dinámico de tarjetas con más holgura -->
+        <div id="moveoutDetallesContenedor" style="overflow-y: auto; max-height: 50vh; display: flex; flex-direction: column; gap: 16px; padding-right: 6px; margin-bottom: 24px;">
+            <!-- Se genera dinámicamente desde JS -->
+        </div>
+
+        <!-- Botones de Acción -->
+        <div style="display: flex; justify-content: flex-end; gap: 14px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <button class="btn-table" onclick="cerrarModalMoveOut()" style="padding: 10px 22px; font-weight: 600;">
+                Cancelar
+            </button>
+            <button class="btn-table" onclick="ejecutarMoveOutConfirmado()" style="background-color: #ef4444; color: #fff; padding: 10px 24px; font-weight: 700; border: none; border-radius: 6px; cursor: pointer;">
+                Confirmar Salida (Move-Out)
+            </button>
+        </div>
+    </div>
+</div>
     <!-- Vinculación del archivo JavaScript -->
-    <script src="script.js"></script>
+    <script src="script.js?v=2.4"></script>
+
 </body>
 </html>
