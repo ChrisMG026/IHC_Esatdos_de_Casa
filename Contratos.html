@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Gestión de Contratos</title>
+    <link rel="stylesheet" href="styles.css?v=2.3">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside>
+        <div>
+            <div class="brand">
+                <div class="brand-icon">R</div>
+                <span>RESIDENTE HUB</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-item">📊 Dashboard</a></li>
+                <li><a href="index.html" class="nav-item">👤 Residentes</a></li>
+                <li><a href="Contratos.html" class="nav-item active">📄 Contratos</a></li>
+                <li><a href="#" class="nav-item">🚗 Estacionamiento</a></li>
+                <li><a href="#" class="nav-item">📈 Reportes</a></li>
+                <li><a href="#" class="nav-item">⚙️ Configuraciones</a></li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- WRAPPER PRINCIPAL -->
+    <div class="main-wrapper">
+        <header>
+            <div class="search-container">
+                <span style="color: #94a3b8;">🔍</span>
+                <input type="text" id="searchInput" placeholder="Buscar por residente, departamento o nomenclatura..." oninput="aplicarFiltrosContratos()">
+                
+                <div class="filter-dropdowns">
+                    <select id="filterTipoContrato" onchange="aplicarFiltrosContratos()">
+                        <option value="">Tipo de Contrato</option>
+                        <option value="6 meses">6 meses</option>
+                        <option value="12 meses">12 meses</option>
+                    </select>
+
+                    <select id="filterEstadoVencimiento" onchange="aplicarFiltrosContratos()">
+                        <option value="">Estado de Vencimiento</option>
+                        <option value="Vigente">Vigentes</option>
+                        <option value="Por vencer">Por Vencer (≤ 30 días)</option>
+                        <option value="Vencido">Vencidos</option>
+                    </select>
+                </div>
+            </div>
+            <div class="user-actions">
+                <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
+                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                </button>
+                <span>🔔</span>
+                <span>👤 Admin ˅</span>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="page-title-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>Control y Gestión de Contratos</h1>
+                <button onclick="exportarExcel()" style="background-color: #10b981; color: #fff; font-weight: 700; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    📊 Exportar a Excel (.xlsx)
+                </button>
+            </div>
+
+            <!-- CHIPS DE ACCESO RÁPIDO -->
+            <div class="chips-container">
+                <button class="chip-btn active" id="chipTodos" onclick="filtrarPorChip('todos', this)">Todos</button>
+                <button class="chip-btn" onclick="filtrarPorChip('por_vencer', this)">⚠️ Próximos a Vencer (≤30 días)</button>
+                <button class="chip-btn" onclick="filtrarPorChip('vencidos', this)">🚨 Vencidos</button>
+                <button class="chip-btn" onclick="filtrarPorChip('renta_alta', this)">💎 Rentas > $10,000</button>
+                <button class="chip-btn" onclick="filtrarPorChip('12_meses', this)">📅 12 Meses</button>
+                <button class="chip-btn" onclick="filtrarPorChip('6_meses', this)">⏳ 6 Meses</button>
+            </div>
+
+            <!-- TARJETAS FINANCIERAS -->
+            <div class="stats-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="label">Total Contratos</div>
+                    <div class="val" id="statTotalContratos">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Ingreso Mensual Proyectado</div>
+                    <div class="val" id="statIngresoTotal" style="color: #10b981;">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Renta Promedio por Unidad</div>
+                    <div class="val" id="statRentaPromedio" style="color: #6366f1;">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Por Vencer / Vencidos</div>
+                    <div class="val" id="statPorVencer" style="color: #ef4444;">0</div>
+                </div>
+            </div>
+
+            <!-- TABLA PRINCIPAL DE CONTRATOS -->
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ubicación ▴</th>
+                            <th>Nomenclatura</th>
+                            <th>Nombre Residente</th>
+                            <th>Contacto</th>
+                            <th>Vehículo</th>
+                            <th>Renta (MXN)</th>
+                            <th>Vigencia Contrato</th>
+                            <th>Duración</th>
+                            <th>Estado Vencimiento</th>
+                            <th style="text-align: center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaContratosBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <span>Versión 0.2.2 - Control de Renovación, Unidades y Estacionamiento</span>
+            <span>Copyright © Amante 2026</span>
+        </footer>
+    </div>
+
+    <!-- MODAL DE RENOVACIÓN DE CONTRATO (CON OPCIÓN DE CAMBIO DE DEPARTAMENTO) -->
+    <div id="modalRenovarOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 580px; width: 92%; padding: 24px; border-radius: 12px; background: var(--bg-card); max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    🔄 Renovación de Contrato
+                </h3>
+                <span onclick="cerrarModalRenovar()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <p id="renovarResidenteInfo" style="font-weight: bold; color: #6366f1; font-size: 1.05rem; margin-bottom: 14px;"></p>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Extensión de plazo:</label>
+                    <select id="inpPlazoExtension" onchange="calcularNuevaFechaSalidaModal()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <option value="12">Renovar por 12 meses</option>
+                        <option value="6">Renovar por 6 meses</option>
+                    </select>
+                </div>
+
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 600;">Nueva Fecha Move-Out:</label>
+                        <input type="date" id="inpNuevaFechaOut" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 600;">Monto Renta Mensual (MXN):</label>
+                        <input type="number" id="inpNuevaRenta" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                </div>
+
+                <!-- CAMBIO DE UNIDAD EN LA MISMA RENOVACIÓN -->
+                <div style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                    <label style="font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">¿Desea cambiar de Departamento / Unidad en esta renovación?</label>
+                    <select id="inpCambiaUnidadRenovacion" onchange="evaluarCambioUnidadRenovacion()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <option value="NO">NO (Conservar departamento actual)</option>
+                        <option value="SI">SI (Asignar nueva unidad)</option>
+                    </select>
+                </div>
+
+                <div id="seccionNuevasOpcionesUnidad" style="display: none; background: var(--bg-main); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">Nivel:</label>
+                            <select id="inpNivelRenov" onchange="onNivelRenovChange()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"><option value="">-- Seleccionar --</option></select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">No. Dep:</label>
+                            <select id="inpDepRenov" onchange="onDepRenovChange()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"><option value="">-- Seleccionar --</option></select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">Recámara:</label>
+                            <select id="inpRecamaraRenov" onchange="onRecamaraRenovChange()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"></select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">Cama:</label>
+                            <select id="inpCamaRenov" onchange="actualizarNomenclaturaRenov()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.85rem; font-weight: 600;">Nomenclatura Asignada (Nueva):</label>
+                        <input type="text" id="inpNomenclaturaRenov" readonly style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); font-weight: bold; color: #6366f1;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                <button class="btn-table" onclick="cerrarModalRenovar()" style="padding: 8px 16px;">Cancelar</button>
+                <button class="btn-table" onclick="guardarRenovacion()" style="background: #10b981; color: #fff; font-weight: 700; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer;">Guardar Renovación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE GESTIÓN DE VEHÍCULO / ESTACIONAMIENTO (DISEÑO PESTAÑA ASIGNACIONES) -->
+    <div id="modalAutoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 550px; width: 92%; padding: 24px; border-radius: 12px; background: var(--bg-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    🚗 Asignación / Gestión de Vehículo
+                </h3>
+                <span onclick="cerrarModalAuto()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <p id="autoResidenteInfo" style="font-weight: bold; color: var(--text-primary); margin-bottom: 14px;"></p>
+
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 4px;">Acción de Vehículo:</label>
+                <select id="inpOpcionAuto" onchange="evaluarOpcionAuto()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    <option value="ASIGNAR">Asignar / Editar Vehículo y Cajón</option>
+                    <option value="RETIRAR">Retirar Vehículo (Liberar Cajón)</option>
+                </select>
+            </div>
+
+            <!-- DISEÑO IDÉNTICO A PESTAÑA ASIGNACIONES DEL MOVE-IN -->
+            <div id="bloqueCamposAuto">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Cajón de Estacionamiento:</label>
+                        <select id="inpCajonAutoModal" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                            <option value="">-- Seleccionar Cajón --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Modelo del Auto:</label>
+                        <input type="text" id="inpModeloAutoModal" placeholder="Ej. Nissan Versa 2022" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Color del Auto:</label>
+                        <input type="text" id="inpColorAutoModal" placeholder="Ej. Blanco / Gris" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Número de Tag:</label>
+                        <input type="text" id="inpTagAutoModal" placeholder="Ej. TAG-8849" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Placas:</label>
+                    <input type="text" id="inpPlacasAutoModal" placeholder="Ej. XYZ-1234" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                <button class="btn-table" onclick="cerrarModalAuto()" style="padding: 8px 16px;">Cancelar</button>
+                <button class="btn-table" id="btnGuardarAuto" onclick="guardarVehiculo()" style="background: #6366f1; color: #fff; font-weight: 700; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer;">Guardar Asignación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE HISTÓRICO COMBINADO (RENOVACIONES Y CAMBIOS) -->
+    <div id="modalHistoricoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 680px; width: 92%; max-height: 80vh; display: flex; flex-direction: column; padding: 24px; border-radius: 12px; background: var(--bg-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--text-primary);">📜 Histórico de Renovaciones y Cambios</h3>
+                <span onclick="cerrarModalHistorico()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <div id="historicoContenido" style="overflow-y: auto; max-height: 52vh; display: flex; flex-direction: column; gap: 12px;"></div>
+
+            <div style="text-align: right; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <button class="btn-table" onclick="cerrarModalHistorico()" style="padding: 8px 16px;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <script src="contratos.js?v=2.0"></script>
+</body>
+</html>

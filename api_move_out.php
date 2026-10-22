@@ -8,61 +8,62 @@ $db   = "estado_de_casa_utower";
 
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) {
-    echo json_encode(["status" => "error", "message" => "Error de conexión a BD: " . $conn->connect_error]);
+    echo json_encode(["status" => "error", "message" => "Error de conexión: " . $conn->connect_error]);
     exit;
 }
 
 $conn->set_charset("utf8mb4");
 
-// Leer arreglo de nomenclaturas enviadas desde JavaScript
 $inputData = file_get_contents('php://input');
 $data = json_decode($inputData, true);
 
-if (!$data || empty($data['nomenclaturas']) || !is_array($data['nomenclaturas'])) {
-    echo json_encode(["status" => "error", "message" => "No se recibieron nomenclaturas válidas."]);
+if (!$data || empty($data['registros']) || !is_array($data['registros'])) {
+    echo json_encode(["status" => "error", "message" => "Datos de salida no válidos."]);
     exit;
 }
 
-$nomenclaturas = $data['nomenclaturas'];
-
-// Iniciar Transacción SQL
 $conn->begin_transaction();
 
 try {
-    // Preparar sentencias DELETE para cada una de las tablas
-    $stmt1 = $conn->prepare("DELETE FROM residentes WHERE nomenclatura = ?");
-    $stmt2 = $conn->prepare("DELETE FROM contrato WHERE nomenclatura = ?");
-    $stmt3 = $conn->prepare("DELETE FROM estacionamiento WHERE nomenclatura = ?");
+    $stmtSelect = $conn->prepare("SELECT COALESCE(c.nombre_residente, r.nombre_completo) as nombre, COALESCE(c.fecha_move_in, r.fecha_move_in) as move_in FROM residentes r LEFT JOIN contrato c ON r.nomenclatura = c.nomenclatura WHERE r.nomenclatura = ?");
+    $stmtInsertHist = $conn->prepare("INSERT INTO move_out (nomenclatura, nombre_residente, move_in, move_out, motivo_salida) VALUES (?, ?, ?, ?, ?)");
+    
+    $stmtDel1 = $conn->prepare("DELETE FROM residentes WHERE nomenclatura = ?");
+    $stmtDel2 = $conn->prepare("DELETE FROM contrato WHERE nomenclatura = ?");
+    $stmtDel3 = $conn->prepare("DELETE FROM estacionamiento WHERE nomenclatura = ?");
 
-    foreach ($nomenclaturas as $nom) {
-        $nomClean = trim($nom);
-        if (!empty($nomClean)) {
-            // Eliminar de residentes
-            $stmt1->bind_param("s", $nomClean);
-            $stmt1->execute();
+    $fechaHoy = date('Y-m-d');
 
-            // Eliminar de contrato
-            $stmt2->bind_param("s", $nomClean);
-            $stmt2->execute();
+    foreach ($data['registros'] as $item) {
+        $nom = trim($item['nomenclatura']);
+        $motivo = trim($item['motivo_salida'] ?? 'Fin de contrato / Salida regular');
 
-            // Eliminar de estacionamiento
-            $stmt3->bind_param("s", $nomClean);
-            $stmt3->execute();
+        if (!empty($nom)) {
+            // A. Buscar información actual
+            $stmtSelect->bind_param("s", $nom);
+            $stmtSelect->execute();
+            $res = $stmtSelect->get_result()->fetch_assoc();
+
+            $nombreRes = $res['nombre'] ?? 'Desconocido';
+            $moveInDate = $res['move_in'] ?? $fechaHoy;
+
+            // B. Guardar en bitácora move_out
+            $stmtInsertHist->bind_param("sssss", $nom, $nombreRes, $moveInDate, $fechaHoy, $motivo);
+            $stmtInsertHist->execute();
+
+            // C. Eliminar de las 3 tablas activas
+            $stmtDel1->bind_param("s", $nom); $stmtDel1->execute();
+            $stmtDel2->bind_param("s", $nom); $stmtDel2->execute();
+            $stmtDel3->bind_param("s", $nom); $stmtDel3->execute();
         }
     }
 
-    $stmt1->close();
-    $stmt2->close();
-    $stmt3->close();
-
-    // Confirmar cambios
     $conn->commit();
-    echo json_encode(["status" => "success", "message" => "Move-out procesado exitosamente en la base de datos."]);
+    echo json_encode(["status" => "success", "message" => "Salida registrada con éxito."]);
 
 } catch (Exception $e) {
-    // Revertir en caso de error
     $conn->rollback();
-    echo json_encode(["status" => "error", "message" => "Error al procesar Move-out: " . $e->getMessage()]);
+    echo json_encode(["status" => "error", "message" => "Error al procesar salida: " . $e->getMessage()]);
 }
 
 $conn->close();

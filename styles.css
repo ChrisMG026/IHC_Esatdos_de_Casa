@@ -10,6 +10,52 @@
     --accent-hover: #4338ca;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+/* ==========================================
+   ESTILOS PARA NOTIFICACIONES TOAST (SÓLIDAS)
+   ========================================== */
+
+/* Se define un fondo sólido con sombra profunda para evitar mezclas */
+.app-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 320px;
+    max-width: 420px;
+    padding: 16px 20px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6); /* Sombra intensa para contrastar */
+    animation: slideInUp 0.3s ease forwards, fadeOut 0.3s ease 7.7s forwards;
+    z-index: 99999;
+}
+
+/* Toast de Éxito (Verde sólido) */
+.toast-success {
+    background-color: #065f46; /* Verde oscuro opaco */
+    color: #ffffff;
+    border: 1px solid #10b981;
+    border-left: 6px solid #10b981;
+}
+
+/* Toast de Error (Rojo sólido) */
+.toast-error {
+    background-color: #991b1b; /* Rojo oscuro opaco */
+    color: #ffffff;
+    border: 1px solid #ef4444;
+    border-left: 6px solid #ef4444;
+}
+
+@keyframes slideInUp { 
+    from { transform: translateY(100%); opacity: 0; } 
+    to { transform: translateY(0); opacity: 1; } 
+}
+
+@keyframes fadeOut { 
+    from { opacity: 1; transform: translateY(0); } 
+    to { opacity: 0; transform: translateY(10px); } 
+}
 
 /* RESET Y ESTILOS BASE */
 * {
@@ -482,4 +528,109 @@ body.dark-mode .form-col select {
     background-color: #0f172a;
     color: #f8fafc;
     border-color: var(--border-color);
+}
+
+/* ==========================================
+   OPTIMIZACIÓN DE ESPACIOS - MÓDULO CONTRATOS
+   ========================================== */
+
+/* Contenedor de Chips con mejor margen */
+.chips-container {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.chip-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.chip-btn:hover {
+    border-color: #6366f1;
+    color: var(--text-primary);
+}
+
+.chip-btn.active {
+    background: #6366f1;
+    color: #ffffff;
+    border-color: #6366f1;
+}
+
+/* Tabla de Contratos Espaciosa */
+.table-card table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-card th {
+    padding: 10px 12px; /* Mismo padding que Residentes */
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.table-card td {
+    padding: 10px 12px; /* Reducido de 16px a 10px para mayor densidad */
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.88rem; /* Tamaño de letra compacto */
+}
+
+/* Badges compactos */
+.badge-vencimiento {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.vencimiento-vigente {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid #10b981;
+}
+
+.vencimiento-por-vencer {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid #f59e0b;
+}
+
+.vencimiento-vencido {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid #ef4444;
+}
+
+/* Botones de acción */
+.action-buttons-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-buttons-group .btn-table {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.action-buttons-group .btn-table:hover {
+    transform: translateY(-2px);
 }
