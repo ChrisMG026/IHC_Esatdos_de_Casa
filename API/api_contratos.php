@@ -36,14 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
     $nomenclatura = $_GET['nomenclatura'] ?? '';
     $residente = $_GET['residente'] ?? '';
 
-    // Renovaciones
     $stmt1 = $conn->prepare("SELECT * FROM renovacion_contrato WHERE nomenclatura_anterior = ? OR nomenclatura_nueva = ? OR residente LIKE ? ORDER BY fecha_registro DESC");
     $paramRes = "%" . $residente . "%";
     $stmt1->bind_param("sss", $nomenclatura, $nomenclatura, $paramRes);
     $stmt1->execute();
     $renovaciones = $stmt1->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    // Cambios de unidad
     $stmt2 = $conn->prepare("SELECT * FROM cambio_unidad WHERE nomenclatura_inicial = ? OR nomenclatura_nueva = ? OR residente LIKE ? ORDER BY fecha_cambio DESC");
     $stmt2->bind_param("sss", $nomenclatura, $nomenclatura, $paramRes);
     $stmt2->execute();
@@ -64,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
     $action = $data['action'] ?? '';
 
-    // 1. RENOVACIÓN DE CONTRATO (CON OPCIÓN DE CAMBIO DE UNIDAD)
+    // 1. RENOVACIÓN DE CONTRATO
     if ($action === 'renovar') {
         $conn->begin_transaction();
         try {
@@ -79,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $depNuevo        = $data['dep_nuevo'];
             $recamaraNueva   = $data['recamara_nueva'];
 
-            // Si cambió de unidad, actualizar residentes, estacionamiento y contratos
             if ($nomAnterior !== $nomNueva) {
                 $stmtU1 = $conn->prepare("UPDATE residentes SET dep = ?, recamara = ?, nomenclatura = ?, renta = ? WHERE nomenclatura = ?");
                 $stmtU1->bind_param("sssss", $depNuevo, $recamaraNueva, $nomNueva, $nuevaRenta, $nomAnterior);
@@ -93,12 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtU3->bind_param("ssssds", $depNuevo, $recamaraNueva, $nomNueva, $nuevaFechaOut, $nuevaRenta, $nomAnterior);
                 $stmtU3->execute();
 
-                // Bitácora cambio de unidad
                 $stmtB = $conn->prepare("INSERT INTO cambio_unidad (residente, nomenclatura_inicial, nomenclatura_nueva, motivo_cambio, fecha_cambio) VALUES (?, ?, ?, 'Renovación con cambio de unidad', CURDATE())");
                 $stmtB->bind_param("sss", $residente, $nomAnterior, $nomNueva);
                 $stmtB->execute();
             } else {
-                // Renovación simple sin cambio de departamento
                 $stmtR = $conn->prepare("UPDATE contrato SET fecha_move_out = ?, renta = ? WHERE nomenclatura = ?");
                 $stmtR->bind_param("sds", $nuevaFechaOut, $nuevaRenta, $nomAnterior);
                 $stmtR->execute();
@@ -108,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtR2->execute();
             }
 
-            // Registrar en la nueva tabla renovacion_contrato
             $stmtRen = $conn->prepare("INSERT INTO renovacion_contrato (residente, nomenclatura_anterior, nomenclatura_nueva, fecha_out_anterior, fecha_out_nueva, renta_anterior, renta_nueva, plazo_extension) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmtRen->bind_param("sssssdds", $residente, $nomAnterior, $nomNueva, $fechaOutAnt, $nuevaFechaOut, $rentaAnt, $nuevaRenta, $plazo);
             $stmtRen->execute();
@@ -123,28 +117,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-   // 2. GESTIÓN DE VEHÍCULO (ASIGNAR / EDITAR / QUITAR CAJÓN)
+    // 2. GESTIÓN DE VEHÍCULO / CAJÓN
     if ($action === 'guardar_auto') {
         $nomenclatura = $data['nomenclatura'];
         $residente    = $data['residente'];
-        $opcion       = $data['opcion_auto']; // 'ASIGNAR' o 'RETIRAR'
+        $opcion       = $data['opcion_auto'];
+        $motivo       = trim($data['motivo'] ?? '');
+
+        // Validación estricta: El motivo es obligatorio
+        if (empty($motivo)) {
+            echo json_encode(["status" => "error", "message" => "El motivo del cambio de cajón/vehículo es obligatorio."]);
+            $conn->close();
+            exit;
+        }
 
         $conn->begin_transaction();
         try {
+            // Obtener datos actuales del vehículo/cajón antes de modificarlo para la bitácora
+            $chkAnt = $conn->prepare("SELECT cajon, numero_tag, modelo_auto, color_auto, placas FROM estacionamiento WHERE nomenclatura = ?");
+            $chkAnt->bind_param("s", $nomenclatura);
+            $chkAnt->execute();
+            $resAnt = $chkAnt->get_result();
+            $cajonAnterior = 'Ninguno';
+            $tagAnterior = '';
+
+            if ($rowAnt = $resAnt->fetch_assoc()) {
+                $cajonAnterior = $rowAnt['cajon'] ?? 'Ninguno';
+                $tagAnterior = $rowAnt['numero_tag'] ?? '';
+            }
+
             if ($opcion === 'RETIRAR') {
                 $stmtD1 = $conn->prepare("DELETE FROM estacionamiento WHERE nomenclatura = ?");
                 $stmtD1->bind_param("s", $nomenclatura);
                 $stmtD1->execute();
 
-                $msg = "Vehículo retirado y cajón liberado.";
-            } else {
-                $cajon  = $data['cajon'];
-                $modelo = $data['modelo'];
-                $color  = $data['color'];
-                $tag    = $data['tag'];
-                $placas = $data['placas'];
+                // Registrar en bitácora cambios_cajon
+                $stmtBit = $conn->prepare("INSERT INTO cambios_cajon (nombre_completo, numero_tag, nomenclatura, cajon_anterior, cajon_nuevo, modelo_auto, color_auto, placas, motivo) VALUES (?, ?, ?, ?, 'Libre', '---', '---', '---', ?)");
+                $stmtBit->bind_param("sssss", $residente, $tagAnterior, $nomenclatura, $cajonAnterior, $motivo);
+                $stmtBit->execute();
 
-                // Verificamos usando 'nomenclatura'
+                $msg = "Vehículo retirado y cajón liberado correctamente.";
+            } else {
+                $cajonNuevo = $data['cajon'];
+                $modelo     = $data['modelo'];
+                $color      = $data['color'];
+                $tag        = $data['tag'];
+                $placas     = $data['placas'];
+
                 $chk = $conn->prepare("SELECT nomenclatura FROM estacionamiento WHERE nomenclatura = ?");
                 $chk->bind_param("s", $nomenclatura);
                 $chk->execute();
@@ -152,12 +171,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($resChk->num_rows > 0) {
                     $stmtE = $conn->prepare("UPDATE estacionamiento SET cajon = ?, numero_tag = ?, nombre_completo = ?, modelo_auto = ?, color_auto = ?, placas = ? WHERE nomenclatura = ?");
-                    $stmtE->bind_param("sssssss", $cajon, $tag, $residente, $modelo, $color, $placas, $nomenclatura);
+                    $stmtE->bind_param("sssssss", $cajonNuevo, $tag, $residente, $modelo, $color, $placas, $nomenclatura);
                 } else {
                     $stmtE = $conn->prepare("INSERT INTO estacionamiento (cajon, numero_tag, nombre_completo, nomenclatura, modelo_auto, color_auto, placas) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmtE->bind_param("sssssss", $cajon, $tag, $residente, $nomenclatura, $modelo, $color, $placas);
+                    $stmtE->bind_param("sssssss", $cajonNuevo, $tag, $residente, $nomenclatura, $modelo, $color, $placas);
                 }
                 $stmtE->execute();
+
+                // Registrar en bitácora cambios_cajon conectando la nomenclatura correcta
+                $stmtBit = $conn->prepare("INSERT INTO cambios_cajon (nombre_completo, numero_tag, nomenclatura, cajon_anterior, cajon_nuevo, modelo_auto, color_auto, placas, motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmtBit->bind_param("sssssssss", $residente, $tag, $nomenclatura, $cajonAnterior, $cajonNuevo, $modelo, $color, $placas, $motivo);
+                $stmtBit->execute();
 
                 $msg = "Vehículo y cajón asignados correctamente.";
             }
@@ -173,8 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// CONSULTA GENERAL DE CONTRATOS (GET DEFAULT)
-// CONSULTA GENERAL DE CONTRATOS CON VERIFICACIÓN AUTOMÁTICA DE VEHÍCULO
+// CONSULTA OPTIMIZADA: Todo el cálculo pesado se delega a MySQL
 $sql = "SELECT 
             c.numero_departamento, 
             c.recamara, 
@@ -185,7 +208,14 @@ $sql = "SELECT
             c.renta, 
             CASE WHEN e.nomenclatura IS NOT NULL THEN 'Si' ELSE 'No' END as tiene_carro, 
             c.fecha_move_in, 
-            c.fecha_move_out 
+            c.fecha_move_out,
+            IF(TIMESTAMPDIFF(MONTH, c.fecha_move_in, c.fecha_move_out) > 9, '12 meses', '6 meses') AS tipo_contrato,
+            DATEDIFF(c.fecha_move_out, CURDATE()) AS dias_restantes,
+            CASE 
+                WHEN DATEDIFF(c.fecha_move_out, CURDATE()) < 0 THEN 'Vencido'
+                WHEN DATEDIFF(c.fecha_move_out, CURDATE()) <= 30 THEN 'Por vencer'
+                ELSE 'Vigente'
+            END AS estado_vencimiento
         FROM contrato c
         LEFT JOIN estacionamiento e ON c.nomenclatura = e.nomenclatura
         ORDER BY CAST(c.numero_departamento AS UNSIGNED) ASC, c.nomenclatura ASC";
@@ -195,26 +225,6 @@ $data = [];
 
 if ($result) {
     while ($row = $result->fetch_assoc()) {
-        $in = new DateTime($row['fecha_move_in']);
-        $out = new DateTime($row['fecha_move_out']);
-        $diff = $in->diff($out);
-        $totalMeses = ($diff->y * 12) + $diff->m;
-
-        $row['tipo_contrato'] = ($totalMeses > 9) ? "12 meses" : "6 meses";
-
-        $hoy = new DateTime();
-        $intervalo = $hoy->diff($out);
-        $diasRestantes = (int)$intervalo->format('%r%a');
-
-        if ($diasRestantes < 0) {
-            $row['estado_vencimiento'] = 'Vencido';
-        } elseif ($diasRestantes <= 30) {
-            $row['estado_vencimiento'] = 'Por vencer';
-        } else {
-            $row['estado_vencimiento'] = 'Vigente';
-        }
-
-        $row['dias_restantes'] = $diasRestantes;
         $data[] = $row;
     }
 }

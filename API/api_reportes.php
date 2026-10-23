@@ -1,0 +1,51 @@
+<?php
+header('Content-Type: application/json; charset=utf-8');
+
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db   = "estado_de_casa_utower";
+
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_error) {
+    die(json_encode(["status" => "error", "message" => "Conexión fallida: " . $conn->connect_error]));
+}
+
+$conn->set_charset("utf8mb4");
+
+// 1. CAMBIOS DE CAJÓN
+$sqlCambiosCajon = "SELECT nombre_completo, numero_tag, nomenclatura, cajon_anterior, cajon_nuevo, modelo_auto, color_auto, placas, motivo, fecha_cambio FROM cambios_cajon ORDER BY fecha_cambio DESC";
+$res1 = $conn->query($sqlCambiosCajon);
+$cambiosCajon = $res1 ? $res1->fetch_all(MYSQLI_ASSOC) : [];
+
+// 2. CAMBIO DE UNIDAD
+$sqlCambioUnidad = "SELECT residente, nomenclatura_inicial, nomenclatura_nueva, motivo_cambio, fecha_cambio FROM cambio_unidad ORDER BY fecha_cambio DESC";
+$res2 = $conn->query($sqlCambioUnidad);
+$cambioUnidad = $res2 ? $res2->fetch_all(MYSQLI_ASSOC) : [];
+
+// 3. MOVE-IN
+$sqlMoveIn = "SELECT numero_departamento, tipologia, recamara, cama, nomenclatura, nombre_residente, move_in FROM move_in ORDER BY move_in DESC";
+$res3 = $conn->query($sqlMoveIn);
+$moveIn = $res3 ? $res3->fetch_all(MYSQLI_ASSOC) : [];
+
+// 4. MOVE-OUT
+$sqlMoveOut = "SELECT nomenclatura, nombre_residente, move_in, move_out, motivo_salida FROM move_out ORDER BY move_out DESC";
+$res4 = $conn->query($sqlMoveOut);
+$moveOut = $res4 ? $res4->fetch_all(MYSQLI_ASSOC) : [];
+
+// 5. RENOVACIÓN DE CONTRATO
+$sqlRenovacion = "SELECT residente, nomenclatura_anterior, nomenclatura_nueva, fecha_out_anterior, fecha_out_nueva, renta_anterior, renta_nueva, plazo_extension, fecha_registro FROM renovacion_contrato ORDER BY fecha_registro DESC";
+$res5 = $conn->query($sqlRenovacion);
+$renovacionContrato = $res5 ? $res5->fetch_all(MYSQLI_ASSOC) : [];
+
+echo json_encode([
+    "status" => "success",
+    "cambios_cajon" => $cambiosCajon,
+    "cambio_unidad" => $cambioUnidad,
+    "move_in" => $moveIn,
+    "move_out" => $moveOut,
+    "renovacion_contrato" => $renovacionContrato
+], JSON_UNESCAPED_UNICODE);
+
+$conn->close();
+?>

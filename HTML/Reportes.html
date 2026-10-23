@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Módulo de Reportes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../CSS/styles.css?v=3.5">
+    <!-- Librería SheetJS para Exportación a Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .reports-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            overflow-x: auto;
+        }
+        .report-tab-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .report-tab-btn.active {
+            background: #6366f1;
+            color: #ffffff;
+        }
+        .report-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 7px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+        .report-tab-btn:not(.active) .report-badge {
+            background: var(--bg-main);
+            color: var(--text-primary);
+        }
+        .report-tab-content {
+            display: none;
+        }
+        .report-tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside>
+        <div>
+            <div class="brand">
+                <div class="brand-icon">R</div>
+                <span>RESIDENTE HUB</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="../HTML/dashboard.html" class="nav-item">📊 Dashboard</a></li>
+                <li><a href="../HTML/index.html" class="nav-item">👤 Residentes</a></li>
+                <li><a href="../HTML/Contratos.html" class="nav-item">📄 Contratos</a></li>
+                <li><a href="../HTML/Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
+                <li><a href="../HTML/Reportes.html" class="nav-item active">📈 Reportes</a></li>
+                <li><a href="#" class="nav-item">⚙️ Configuraciones</a></li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- WRAPPER PRINCIPAL -->
+    <div class="main-wrapper">
+        <header>
+            <div class="search-container" style="width: 50%;">
+                <span style="color: #94a3b8;">🔍</span>
+                <input type="text" id="searchInput" placeholder="Buscar en el reporte activo por residente, nomenclatura, motivo..." oninput="aplicarFiltroReporte()">
+            </div>
+
+            <div class="user-actions">
+                <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
+                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                </button>
+                <span>👤 Admin ˅</span>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="page-title-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1>Historial y Reportes del Sistema</h1>
+                    <div style="display: flex; gap: 10px;">
+                    <!-- BOTÓN 1: EXPORTAR SÓLO LA PESTAÑA ACTIVA -->
+                    <button onclick="exportarExcelReporteActivo()" style="background-color: #10b981; color: #fff; font-weight: 700; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    📊 Exportar Reporte Activo (.xlsx)
+                    </button>
+                     <!-- BOTÓN 2: EXPORTAR TODAS LAS TABLAS EN UN SOLO LIBRO DE EXCEL -->
+                    <button onclick="exportarTodasLasTablasExcel()" style="background-color: #6366f1; color: #fff; font-weight: 700; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    📦 Exportar Todo a Excel (5 Hojas)
+                    </button>
+                </div>
+            </div>
+
+            <!-- NAVEGACIÓN DE REPORTES POR PESTAÑAS -->
+            <div class="reports-tabs">
+                <button class="report-tab-btn active" onclick="cambiarReporte('cambios_cajon', this)">
+                    🚗 Cambios de Cajón <span class="report-badge" id="badgeCambiosCajon">0</span>
+                </button>
+                <button class="report-tab-btn" onclick="cambiarReporte('cambio_unidad', this)">
+                    🔄 Cambio de Unidad <span class="report-badge" id="badgeCambioUnidad">0</span>
+                </button>
+                <button class="report-tab-btn" onclick="cambiarReporte('move_in', this)">
+                    📥 Move-In <span class="report-badge" id="badgeMoveIn">0</span>
+                </button>
+                <button class="report-tab-btn" onclick="cambiarReporte('move_out', this)">
+                    📤 Move-Out <span class="report-badge" id="badgeMoveOut">0</span>
+                </button>
+                <button class="report-tab-btn" onclick="cambiarReporte('renovacion_contrato', this)">
+                    📜 Renovaciones <span class="report-badge" id="badgeRenovacion">0</span>
+                </button>
+            </div>
+
+            <!-- REPORTE 1: CAMBIOS DE CAJÓN -->
+            <div id="tab_cambios_cajon" class="report-tab-content active">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre Completo</th>
+                                <th>No. Tag</th>
+                                <th>Nomenclatura</th>
+                                <th>Cajón Anterior</th>
+                                <th>Cajón Nuevo</th>
+                                <th>Modelo Auto</th>
+                                <th>Color</th>
+                                <th>Placas</th>
+                                <th>Motivo</th>
+                                <th>Fecha Cambio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_cambios_cajon"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- REPORTE 2: CAMBIO DE UNIDAD -->
+            <div id="tab_cambio_unidad" class="report-tab-content">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Residente</th>
+                                <th>Nomenclatura Inicial</th>
+                                <th>Nomenclatura Nueva</th>
+                                <th>Motivo Cambio</th>
+                                <th>Fecha Cambio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_cambio_unidad"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- REPORTE 3: MOVE-IN -->
+            <div id="tab_move_in" class="report-tab-content">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No. Departamento</th>
+                                <th>Tipología</th>
+                                <th>Recámara</th>
+                                <th>Nomenclatura</th>
+                                <th>Nombre Residente</th>
+                                <th>Fecha Move-In</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_move_in"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- REPORTE 4: MOVE-OUT -->
+            <div id="tab_move_out" class="report-tab-content">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nomenclatura</th>
+                                <th>Nombre Residente</th>
+                                <th>Move-In</th>
+                                <th>Move-Out</th>
+                                <th>Motivo Salida</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_move_out"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- REPORTE 5: RENOVACIÓN DE CONTRATO -->
+            <div id="tab_renovacion_contrato" class="report-tab-content">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Residente</th>
+                                <th>Nom. Anterior</th>
+                                <th>Nom. Nueva</th>
+                                <th>Fecha Out Ant.</th>
+                                <th>Fecha Out Nueva</th>
+                                <th>Renta Anterior</th>
+                                <th>Renta Nueva</th>
+                                <th>Plazo Ext.</th>
+                                <th>Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody_renovacion_contrato"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BARRA DE PAGINACIÓN DINÁMICA -->
+            <div class="pagination-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 10px 10px; font-size: 0.88rem; margin-top: -1px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>Página:</span>
+                    <select id="selectPaginaReportes" onchange="cambiarPaginaDirecta(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;"></select>
+                    
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn-table" onclick="cambiarPaginaRelativa(-1)" title="Anterior">❮</button>
+                        <button class="btn-table" onclick="cambiarPaginaRelativa(1)" title="Siguiente">❯</button>
+                    </div>
+
+                    <span style="border-left: 1px solid var(--border-color); height: 18px; margin: 0 4px;"></span>
+
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" id="chkMostrarTodo" onchange="toggleMostrarTodo(this.checked)">
+                        Mostrar todo
+                    </label>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span id="textoRangoFilas" style="color: var(--text-secondary); font-size: 0.82rem;">Mostrando 0 - 0 de 0</span>
+                    
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>Filas:</span>
+                        <select id="selectFilasPorPagina" onchange="cambiarFilasPorPagina(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;">
+                            <option value="15">15</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <footer>
+            <span>Versión 0.1.4 - Módulo Unificado de Historial y Reportes</span>
+            <span>Copyright © Amante 2026</span>
+        </footer>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <script src="../JavaScript/reportes.js?v=1.0"></script>
+</body>
+</html>

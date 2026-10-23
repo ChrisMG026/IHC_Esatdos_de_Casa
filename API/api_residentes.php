@@ -13,7 +13,7 @@ if ($conn->connect_error) {
 
 $conn->set_charset("utf8mb4");
 
-// Consulta limpia sin hacer referencia a las columnas eliminadas de la tabla 'residentes'
+// CONSULTA OPTIMIZADA: Cálculos de nivel, tipología y estados directo en SQL
 $sql = "SELECT 
             COALESCE(c.nombre_residente, r.nombre_completo) AS nombre,
             c.celular AS telefono,
@@ -23,13 +23,31 @@ $sql = "SELECT
             d.cama,
             d.nomenclatura,
             COALESCE(d.numero_dep, c.numero_departamento, SUBSTRING_INDEX(d.nomenclatura, '-', 1)) AS dep,
-            COALESCE(d.nivel, lm.nivel) AS nivel_db,
-            d.tipologia AS tipologia_db,
+            COALESCE(
+                d.nivel, 
+                lm.nivel, 
+                CASE 
+                    WHEN LENGTH(COALESCE(d.numero_dep, c.numero_departamento, SUBSTRING_INDEX(d.nomenclatura, '-', 1))) = 4 
+                        THEN CONCAT('N', SUBSTRING(COALESCE(d.numero_dep, c.numero_departamento, SUBSTRING_INDEX(d.nomenclatura, '-', 1)), 1, 2))
+                    WHEN LENGTH(COALESCE(d.numero_dep, c.numero_departamento, SUBSTRING_INDEX(d.nomenclatura, '-', 1))) = 3 
+                        THEN CONCAT('N', SUBSTRING(COALESCE(d.numero_dep, c.numero_departamento, SUBSTRING_INDEX(d.nomenclatura, '-', 1)), 1, 1))
+                    ELSE 'PB'
+                END
+            ) AS nivel,
+            COALESCE(d.tipologia, 'twin') AS tipologia,
             COALESCE(c.fecha_move_in, r.fecha_move_in) AS fecha_move_in,
             c.fecha_move_out,
             c.renta,
             e.cajon,
-            lm.clave_maestra
+            COALESCE(lm.clave_maestra, CONCAT('KEY-', LPAD(COALESCE(d.numero_dep, c.numero_departamento, SUBSTRING_INDEX(d.nomenclatura, '-', 1)), 4, '0'))) AS clave_maestra,
+            DATEDIFF(c.fecha_move_out, CURDATE()) AS dias_restantes,
+            CASE 
+                WHEN c.fecha_move_out IS NULL THEN 'Sin Contrato'
+                WHEN DATEDIFF(c.fecha_move_out, CURDATE()) < 0 THEN 'Vencido'
+                WHEN DATEDIFF(c.fecha_move_out, CURDATE()) <= 30 THEN 'Vence pronto'
+                WHEN DATEDIFF(c.fecha_move_out, CURDATE()) <= 90 THEN 'Por vencer'
+                ELSE 'Vigente'
+            END AS status
         FROM departamentos d
         LEFT JOIN residentes r ON d.nomenclatura = r.nomenclatura
         LEFT JOIN contrato c ON d.nomenclatura = c.nomenclatura
@@ -42,29 +60,6 @@ $data = [];
 
 if ($result) {
     while($row = $result->fetch_assoc()) {
-        $depNum = trim($row['dep'] ?? '');
-
-        // --- Nivel inteligente de respaldo ---
-        if (empty($row['nivel_db'])) {
-            if (strlen($depNum) === 4) {
-                $row['nivel'] = "N" . substr($depNum, 0, 2);
-            } elseif (strlen($depNum) === 3) {
-                $row['nivel'] = "N" . substr($depNum, 0, 1);
-            } else {
-                $row['nivel'] = "PB";
-            }
-        } else {
-            $row['nivel'] = $row['nivel_db'];
-        }
-
-        // --- Tipología real desde BD ---
-        $row['tipologia'] = !empty($row['tipologia_db']) ? $row['tipologia_db'] : 'twin';
-
-        // --- Clave Maestra real desde BD ---
-        if (empty($row['clave_maestra'])) {
-            $row['clave_maestra'] = "KEY-" . str_pad($depNum, 4, "0", STR_PAD_LEFT);
-        }
-
         $data[] = $row;
     }
 }

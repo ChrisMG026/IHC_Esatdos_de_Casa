@@ -2,15 +2,15 @@ let residentesData = [];
 let residentesFiltradosMemoria = [];
 let nomenclaturasAEliminarGlobal = [];
 let timeoutBusqueda = null;
+let paginaActual = 1;
+let filasPorPagina = 25;
+let mostrarTodo = false;
 
 async function cargarResidentesDesdeBD() {
     try {
-        let response = await fetch('api_residentes.php');
+        let response = await fetch('../API/api_residentes.php');
         residentesData = await response.json();
-        residentesData.forEach(item => {
-            item.status = calcularEstadoContrato(item.fecha_move_out);
-            item.tiempoRestante = calcularTiempoRestante(item.fecha_move_out);
-        });
+        
         actualizarOpcionesFiltros();
         renderTabla();
         prepararCatalogosModal();
@@ -30,26 +30,6 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 8000);
-}
-
-function calcularEstadoContrato(fechaMoveOut) {
-    if (!fechaMoveOut) return "Sin Contrato";
-    let hoy = new Date(), salida = new Date(fechaMoveOut);
-    let diffDias = Math.ceil((salida - hoy) / (1000 * 60 * 60 * 24));
-    if (diffDias < 0) return "Vencido";
-    if (diffDias <= 30) return "Vence pronto";
-    if (diffDias <= 90) return "Por vencer";
-    return "Vigente";
-}
-
-function calcularTiempoRestante(fechaMoveOut) {
-    if (!fechaMoveOut) return "N/A";
-    let hoy = new Date(), fin = new Date(fechaMoveOut);
-    if (fin < hoy) return "Contrato finalizado";
-    let meses = (fin.getFullYear() - hoy.getFullYear()) * 12 + (fin.getMonth() - hoy.getMonth());
-    let dias = fin.getDate() - hoy.getDate();
-    if (dias < 0) { meses--; dias += new Date(hoy.getFullYear(), hoy.getMonth(), 0).getDate(); }
-    return `${meses} meses y ${dias} días restantes`;
 }
 
 // PANEL Y CONTADOR DE NOTIFICACIONES ACTIVAS
@@ -109,7 +89,6 @@ function togglePanelNotificaciones() {
     }
 }
 
-// ACCIÓN 1: MOVES OUT DIRECTO DESDE NOTIFICACIÓN
 function iniciarMoveOutDesdeNotif(nomenclatura) {
     togglePanelNotificaciones();
     nomenclaturasAEliminarGlobal = [nomenclatura];
@@ -148,7 +127,6 @@ function iniciarMoveOutDesdeNotif(nomenclatura) {
     document.getElementById('modalMoveOutOverlay').style.display = 'flex';
 }
 
-// ACCIÓN 2: REDIRECCIÓN Y RENOVAR CONTRATO EN PESTAÑA CONTRATOS
 function irARenovarContrato(nomenclatura) {
     window.location.href = `Contratos.html?renovar=${encodeURIComponent(nomenclatura)}`;
 }
@@ -213,21 +191,34 @@ function renderTabla(datos) {
     let residentesAsignados = datos || residentesData.filter(r => r.nombre && r.nombre.trim() !== '');
     residentesFiltradosMemoria = residentesAsignados;
 
+    let totalRegistros = residentesAsignados.length;
+    let totalPaginas = mostrarTodo ? 1 : Math.ceil(totalRegistros / filasPorPagina) || 1;
+
+    if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+    if (paginaActual < 1) paginaActual = 1;
+
+    let inicio = mostrarTodo ? 0 : (paginaActual - 1) * filasPorPagina;
+    let fin = mostrarTodo ? totalRegistros : Math.min(inicio + filasPorPagina, totalRegistros);
+
+    let datosPaginados = residentesAsignados.slice(inicio, fin);
+
     let tbody = document.getElementById('tablaBody');
     tbody.innerHTML = '';
 
-    residentesAsignados.forEach((item, index) => {
+    datosPaginados.forEach((item, idxRelativo) => {
+        let indexOriginal = residentesAsignados.indexOf(item);
         let badgeStatusClass = 'status-green', bgDateClass = 'bg-green';
         if (item.status === 'Vence pronto' || item.status === 'Vencido') { badgeStatusClass = 'status-red'; bgDateClass = 'bg-red'; }
         else if (item.status === 'Por vencer') { badgeStatusClass = 'status-yellow'; bgDateClass = 'bg-yellow'; }
+        
         let tieneAuto = (item.tiene_carro && item.tiene_carro.toLowerCase() === 'si') || (item.cajon && item.cajon.trim() !== '');
-let badgeVehiculo = tieneAuto 
-    ? `<span class="badge-status status-green" title="${item.cajon || 'Con Auto'}">🚗 ${item.cajon || 'Si'}</span>` 
-    : `<span style="color: var(--text-secondary); font-size: 0.85rem;">🚫 No</span>`;
+        let badgeVehiculo = tieneAuto 
+            ? `<span class="badge-status status-green" title="${item.cajon || 'Con Auto'}">🚗 ${item.cajon || 'Si'}</span>` 
+            : `<span style="color: var(--text-secondary); font-size: 0.85rem;">🚫 No</span>`;
 
         tbody.innerHTML += `
             <tr>
-                <td><input type="checkbox" class="row-checkbox" value="${index}"></td>
+                <td><input type="checkbox" class="row-checkbox" value="${indexOriginal}"></td>
                 <td><strong>${item.nombre}</strong></td>
                 <td>${item.genero || 'N/A'}</td>
                 <td>${badgeVehiculo}</td>
@@ -239,19 +230,66 @@ let badgeVehiculo = tieneAuto
                 <td><span class="badge-status ${badgeStatusClass}">${item.status}</span></td>
                 <td style="text-align: center;">
                     <div style="display: flex; gap: 4px; justify-content: center;">
-                        <button class="btn-table btn-details" onclick="verDetalles(${index})" title="Ver detalles">👁️</button>
-                        <button class="btn-table" onclick="editarResidente(${index})" title="Editar">✏️</button>
-                        <button class="btn-table" onclick="generarCredencialResidente(${index})" title="Imprimir Credencial / Expediente">🪪</button>
+                        <button class="btn-table btn-details" onclick="verDetalles(${indexOriginal})" title="Ver detalles">👁️</button>
+                        <button class="btn-table" onclick="editarResidente(${indexOriginal})" title="Editar">✏️</button>
+                        <button class="btn-table" onclick="generarCredencialResidente(${indexOriginal})" title="Imprimir Credencial / Expediente">🪪</button>
                     </div>
                 </td>
             </tr>
         `;
     });
 
-    document.getElementById('statTotal').innerText = residentesAsignados.length;
+    // Actualizar métricas generales
+    document.getElementById('statTotal').innerText = totalRegistros;
     let vigentes = residentesAsignados.filter(r => r.status === 'Vigente').length;
     document.getElementById('statVigentes').innerText = vigentes;
-    document.getElementById('statPorVencer').innerText = residentesAsignados.length - vigentes;
+    document.getElementById('statPorVencer').innerText = totalRegistros - vigentes;
+
+    // Actualizar controles visuales de la barra de paginación
+    actualizarControlesPaginacion(totalRegistros, totalPaginas, inicio, fin);
+}
+
+function actualizarControlesPaginacion(totalRegistros, totalPaginas, inicio, fin) {
+    let selectPagina = document.getElementById('selectPagina');
+    if (selectPagina) {
+        selectPagina.innerHTML = '';
+        for (let i = 1; i <= totalPaginas; i++) {
+            selectPagina.innerHTML += `<option value="${i}" ${i === paginaActual ? 'selected' : ''}>${i}</option>`;
+        }
+        selectPagina.disabled = mostrarTodo;
+    }
+
+    let textoRango = document.getElementById('textoRangoFilas');
+    if (textoRango) {
+        if (totalRegistros === 0) {
+            textoRango.innerText = 'Mostrando 0 de 0';
+        } else {
+            textoRango.innerText = `Mostrando ${inicio + 1} - ${fin} de ${totalRegistros}`;
+        }
+    }
+}
+
+function cambiarPaginaDirecta(num) {
+    paginaActual = parseInt(num) || 1;
+    renderTabla(residentesFiltradosMemoria);
+}
+
+function cambiarPaginaRelative(delta) {
+    paginaActual += delta;
+    renderTabla(residentesFiltradosMemoria);
+}
+
+function cambiarFilasPorPagina(val) {
+    filasPorPagina = parseInt(val) || 25;
+    paginaActual = 1;
+    renderTabla(residentesFiltradosMemoria);
+}
+
+function toggleMostrarTodo(checked) {
+    mostrarTodo = checked;
+    document.getElementById('selectFilasPorPagina').disabled = checked;
+    paginaActual = 1;
+    renderTabla(residentesFiltradosMemoria);
 }
 
 function exportarResidentesExcel() {
@@ -344,17 +382,21 @@ function generarCredencialResidente(index) {
 
 function verDetalles(index) {
     let res = residentesFiltradosMemoria[index];
+    let dias = parseInt(res.dias_restantes) || 0;
+    let textoRestante = dias < 0 ? 'Contrato vencido' : `${dias} días restantes`;
+
     document.getElementById('detallesContenido').innerHTML = `
         <div style="display:flex; flex-direction:column; gap:10px; font-size:0.9rem;">
             <p><strong>Residente:</strong> ${res.nombre} (${res.genero || 'N/A'})</p>
             <p><strong>Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'} (${res.nomenclatura || 'N/A'})</p>
             <p><strong>Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
             <p><strong>Contrato:</strong> ${res.fecha_move_in || 'N/A'} al ${res.fecha_move_out || 'N/A'}</p>
-            <p><strong>Restante:</strong> <span style="color:#6366f1; font-weight:700;">${res.tiempoRestante}</span></p>
+            <p><strong>Restante:</strong> <span style="color:#6366f1; font-weight:700;">${textoRestante}</span></p>
         </div>
     `;
     document.getElementById('modalDetallesOverlay').style.display = 'flex';
 }
+
 function cerrarModalDetalles() { document.getElementById('modalDetallesOverlay').style.display = 'none'; }
 
 function estaEspacioDesocupado(item) {
@@ -555,6 +597,8 @@ function evaluarCambioUnidad() {
 
 function cerrarModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 
+let ultimoResidenteRegistrado = null;
+
 async function guardarResidente() {
     let indexEdit = document.getElementById('editIndex').value;
     let esEdicion = indexEdit !== '-1';
@@ -582,7 +626,7 @@ async function guardarResidente() {
         };
 
         try {
-            let res = await fetch('api_cambio_unidad.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadCambio) });
+            let res = await fetch('../API/api_cambio_unidad.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadCambio) });
             let result = await res.json();
             if (result.status === 'success') {
                 mostrarNotificacion('Cambios y unidad actualizados con éxito.', 'success');
@@ -620,14 +664,159 @@ async function guardarResidente() {
     };
 
     try {
-        let response = await fetch('api_guardar_residente.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        let response = await fetch('../API/api_guardar_residente.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         let resultado = await response.json();
+        
         if (resultado.status === 'success') {
             mostrarNotificacion(esEdicion ? 'Cambios guardados correctamente' : 'Residente registrado correctamente', 'success');
             await cargarResidentesDesdeBD();
             cerrarModal();
+
+            // SI ES UN NUEVO REGISTRO, MOSTRAR MODAL DE IMPRESIÓN
+            if (!esEdicion) {
+                ultimoResidenteRegistrado = payload;
+                abrirModalOpcionesImpresion(payload);
+            }
         } else { mostrarNotificacion('Error en la base de datos: ' + resultado.message, 'error'); }
     } catch (error) { mostrarNotificacion('Error crítico: Falló la conexión con el servidor.', 'error'); }
+}
+
+// MOSTRAR PREGUNTA DE IMPRESIÓN AL FINALIZAR REGISTRO
+function abrirModalOpcionesImpresion(res) {
+    document.getElementById('residenteImpresionNombre').innerText = res.nombre_completo;
+    document.getElementById('residenteImpresionNom').innerText = res.nomenclatura;
+    
+    // Si no tiene TAG, ocultar botón de QR
+    let btnQR = document.getElementById('btnImprimirQRGrupo');
+    if (res.numero_tag && res.numero_tag.trim() !== '') {
+        btnQR.style.display = 'inline-block';
+    } else {
+        btnQR.style.display = 'none';
+    }
+
+    document.getElementById('modalPostAltaOverlay').style.display = 'flex';
+}
+
+function cerrarModalPostAlta() {
+    document.getElementById('modalPostAltaOverlay').style.display = 'none';
+    ultimoResidenteRegistrado = null;
+}
+
+// FUNCIONES DE IMPRESIÓN DIRECTA
+function imprimirCredencialDesdePostAlta() {
+    if (!ultimoResidenteRegistrado) return;
+    let res = {
+        nombre: ultimoResidenteRegistrado.nombre_completo,
+        genero: ultimoResidenteRegistrado.genero,
+        nivel: document.getElementById('inpNivelModal').value || 'N/A',
+        dep: ultimoResidenteRegistrado.dep,
+        nomenclatura: ultimoResidenteRegistrado.nomenclatura,
+        telefono: ultimoResidenteRegistrado.telefono,
+        correo: ultimoResidenteRegistrado.correo,
+        fecha_move_in: ultimoResidenteRegistrado.fecha_move_in,
+        fecha_move_out: ultimoResidenteRegistrado.fecha_move_out,
+        cajon: ultimoResidenteRegistrado.cajon,
+        placas: ultimoResidenteRegistrado.placas
+    };
+    
+    // Buscar índice o lanzar credencial directamente
+    generarCredencialObjeto(res);
+}
+
+function imprimirQRDesdePostAlta() {
+    if (!ultimoResidenteRegistrado || !ultimoResidenteRegistrado.numero_tag) return;
+    
+    let tag = ultimoResidenteRegistrado.numero_tag;
+    let nombre = ultimoResidenteRegistrado.nombre_completo;
+    
+    let ventana = window.open('', '_blank');
+    ventana.document.write(`
+        <html>
+        <head>
+            <title>Pase_Acceso_QR_${tag}</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 40px; background: #fff; color: #0f172a; }
+                .card { border: 2px solid #6366f1; border-radius: 16px; padding: 25px; max-width: 320px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+                .logo { font-weight: bold; font-size: 18px; color: #4338ca; margin-bottom: 15px; }
+                #qrcode { display: inline-block; margin: 15px 0; }
+                .tag-code { font-family: monospace; font-size: 18px; font-weight: bold; color: #6366f1; background: #f1f5f9; padding: 8px; border-radius: 6px; }
+                .info { font-size: 13px; color: #64748b; margin-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="logo">🏢 U-TOWER RESIDENCIAL</div>
+                <div style="font-size: 14px; font-weight: bold;">PASE DE ACCESO VEHICULAR</div>
+                <div id="qrcode"></div>
+                <div class="tag-code">TAG: ${tag}</div>
+                <div class="info">Residente: <strong>${nombre}</strong></div>
+            </div>
+            <script>
+                new QRCode(document.getElementById("qrcode"), {
+                    text: "${tag}",
+                    width: 160,
+                    height: 160
+                });
+                window.onload = function() { window.print(); }
+            <\/script>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
+}
+
+function generarCredencialObjeto(res) {
+    let ventana = window.open('', '_blank');
+    ventana.document.write(`
+        <html>
+        <head>
+            <title>Credencial_${res.nomenclatura}_${res.nombre}</title>
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; background: #f8fafc; color: #0f172a; }
+                .card { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 2px solid #6366f1; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+                .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; }
+                .logo { font-size: 20px; font-weight: 800; color: #4338ca; }
+                .badge-nom { background: #6366f1; color: #ffffff; padding: 6px 14px; border-radius: 8px; font-weight: bold; font-size: 16px; }
+                .field { margin-bottom: 12px; }
+                .label { font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: bold; margin-bottom: 2px; }
+                .val { font-size: 15px; font-weight: 600; color: #1e293b; }
+                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+                .footer { text-align: center; margin-top: 25px; padding-top: 15px; border-top: 1px dashed #cbd5e1; font-size: 12px; color: #64748b; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="header">
+                    <div class="logo">🏢 U-TOWER RESIDENCIAL</div>
+                    <div class="badge-nom">${res.nomenclatura}</div>
+                </div>
+
+                <div class="field">
+                    <div class="label">Nombre del Residente</div>
+                    <div class="val" style="font-size: 18px; color: #312e81;">${res.nombre}</div>
+                </div>
+
+                <div class="grid" style="margin-top: 15px;">
+                    <div class="field"><div class="label">Ubicación</div><div class="val">Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'}</div></div>
+                    <div class="field"><div class="label">Género</div><div class="val">${res.genero || 'N/A'}</div></div>
+                    <div class="field"><div class="label">Teléfono Contacto</div><div class="val">${res.telefono || 'No registrado'}</div></div>
+                    <div class="field"><div class="label">Correo Electrónico</div><div class="val">${res.correo || 'No registrado'}</div></div>
+                    <div class="field"><div class="label">Ingreso (Move-In)</div><div class="val">${res.fecha_move_in || 'N/A'}</div></div>
+                    <div class="field"><div class="label">Salida (Move-Out)</div><div class="val">${res.fecha_move_out || 'N/A'}</div></div>
+                    <div class="field"><div class="label">Estacionamiento</div><div class="val">${res.cajon || 'Sin cajón'}</div></div>
+                    <div class="field"><div class="label">Placas Auto</div><div class="val">${res.placas || 'N/A'}</div></div>
+                </div>
+
+                <div class="footer">
+                    Expediente Digital Oficial - U-Tower Management System
+                </div>
+            </div>
+            <script>window.onload = function() { window.print(); }<\/script>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
 }
 
 function procesarSalidaSeleccionados() {
@@ -704,7 +893,7 @@ async function ejecutarMoveOutConfirmado() {
     }));
 
     try {
-        let response = await fetch('api_move_out.php', { 
+        let response = await fetch('../API/api_move_out.php', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ registros: registrosSalida }) 
@@ -751,3 +940,4 @@ window.onload = function() {
     }
     cargarResidentesDesdeBD();
 };
+

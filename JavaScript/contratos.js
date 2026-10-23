@@ -4,21 +4,157 @@ let listaResidentesOriginal = [];
 let timeoutBusqueda = null;
 let contratoSeleccionado = null;
 let chipActivo = 'todos';
+let nomenclaturasAEliminarGlobal = [];
+let paginaActualContratos = 1;
+let filasPorPaginaContratos = 25;
+let mostrarTodoContratos = false;
 
 async function cargarContratosDesdeBD() {
     try {
-        let response = await fetch('api_contratos.php');
+        let response = await fetch('../API/api_contratos.php');
         contratosData = await response.json();
         contratosFiltrados = [...contratosData];
         
-        // Cargar catálogo de residentes para cambios de unidad
-        let resResp = await fetch('api_residentes.php');
+        let resResp = await fetch('../API/api_residentes.php');
         listaResidentesOriginal = await resResp.json();
 
         renderTablaContratos(contratosFiltrados);
+        actualizarBadgeSidebarYNotificaciones();
     } catch (error) {
         console.error("Error al conectar con la base de datos:", error);
         mostrarNotificacion('Error al cargar contratos.', 'error');
+    }
+}
+
+// PANEL Y CONTADOR DE NOTIFICACIONES ACTIVAS (CAMPANA)
+function actualizarBadgeSidebarYNotificaciones() {
+    let badgeSidebar = document.getElementById('sidebarBadgeContratosAlertas');
+    let badgeHeader = document.getElementById('headerBadgeNotif');
+    let listaContenido = document.getElementById('listaNotificacionesContenido');
+
+    let pendientes = contratosData.filter(c => c.estado_vencimiento === 'Por vencer' || c.estado_vencimiento === 'Vencido');
+    let total = pendientes.length;
+
+    if (badgeSidebar) {
+        badgeSidebar.innerText = total;
+        badgeSidebar.style.display = total > 0 ? 'inline-block' : 'none';
+    }
+    if (badgeHeader) {
+        badgeHeader.innerText = total;
+        badgeHeader.style.display = total > 0 ? 'inline-block' : 'none';
+    }
+
+    if (listaContenido) {
+        if (total === 0) {
+            listaContenido.innerHTML = '<p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; padding:10px 0;">No hay contratos pendientes ni por vencer.</p>';
+        } else {
+            listaContenido.innerHTML = '';
+            pendientes.forEach(res => {
+                let colorTag = res.estado_vencimiento === 'Vencido' ? '#ef4444' : '#f59e0b';
+                let estadoTexto = res.estado_vencimiento === 'Vencido' ? `Vencido (${Math.abs(res.dias_restantes)} d.)` : `Por vencer (${res.dias_restantes} d.)`;
+                
+                listaContenido.innerHTML += `
+                    <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; font-size: 0.85rem;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px;">
+                            <span>${res.nombre_residente}</span>
+                            <span style="color: ${colorTag}; font-size:0.78rem;">${estadoTexto}</span>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 8px;">
+                            Nomenclatura: <strong>${res.nomenclatura}</strong> | Vence: <strong>${res.fecha_move_out}</strong>
+                        </div>
+                        <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                            <button onclick="iniciarMoveOutDesdeNotif('${res.nomenclatura}')" style="background: #ef4444; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
+                                🚪 Move-Out
+                            </button>
+                            <button onclick="abrirModalRenovar('${res.nomenclatura}'); togglePanelNotificaciones();" style="background: #10b981; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
+                                🔄 Renovar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    }
+}
+
+function togglePanelNotificaciones() {
+    let panel = document.getElementById('panelNotificaciones');
+    if (panel) {
+        panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+    }
+}
+
+function iniciarMoveOutDesdeNotif(nomenclatura) {
+    togglePanelNotificaciones();
+    nomenclaturasAEliminarGlobal = [nomenclatura];
+    let res = contratosData.find(c => c.nomenclatura === nomenclatura);
+    if (!res) return;
+
+    let contenedor = document.getElementById('moveoutDetallesContenedor');
+    contenedor.innerHTML = '';
+    document.getElementById('inpMotivoMoveOut').value = '';
+
+    contenedor.innerHTML = `
+        <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px 20px; font-size: 0.92rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px;">
+                <strong style="font-size: 1.1rem; color: var(--text-primary);">${res.nombre_residente}</strong>
+                <span style="background: #6366f1; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">${res.nomenclatura}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; color: var(--text-primary); line-height: 1.6;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <p style="margin: 0;"><strong>📞 Teléfono:</strong> ${res.celular || 'No registrado'}</p>
+                    <p style="margin: 0;"><strong>✉️ Correo:</strong> ${res.correo || 'No registrado'}</p>
+                    <p style="margin: 0;"><strong>📍 Ubicación:</strong> Dep. ${res.numero_departamento || 'N/A'}</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <p style="margin: 0;"><strong>💵 Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
+                    <p style="margin: 0;"><strong>📅 Fecha Move-In:</strong> ${res.fecha_move_in || 'N/A'}</p>
+                    <p style="margin: 0;"><strong>📅 Fecha Move-Out:</strong> ${res.fecha_move_out || 'N/A'}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalMoveOutOverlay').style.display = 'flex';
+}
+
+function cerrarModalMoveOut() { 
+    document.getElementById('modalMoveOutOverlay').style.display = 'none'; 
+    nomenclaturasAEliminarGlobal = []; 
+}
+
+async function ejecutarMoveOutConfirmado() {
+    if (nomenclaturasAEliminarGlobal.length === 0) return;
+    let motivoIngresado = document.getElementById('inpMotivoMoveOut').value.trim();
+
+    if (!motivoIngresado) {
+        mostrarNotificacion('Por favor ingresa el motivo de la salida para continuar.', 'error');
+        document.getElementById('inpMotivoMoveOut').focus();
+        return;
+    }
+
+    let registrosSalida = nomenclaturasAEliminarGlobal.map(nom => ({ 
+        nomenclatura: nom, 
+        motivo_salida: motivoIngresado 
+    }));
+
+    try {
+        let response = await fetch('../API/api_move_out.php', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ registros: registrosSalida }) 
+        });
+        
+        let resultado = await response.json();
+        if (resultado.status === 'success') {
+            cerrarModalMoveOut();
+            mostrarNotificacion('Salida del residente registrada correctamente', 'success');
+            await cargarContratosDesdeBD();
+        } else { 
+            mostrarNotificacion('Error al procesar salida: ' + resultado.message, 'error'); 
+        }
+    } catch (error) { 
+        mostrarNotificacion('Error crítico: Falló la conexión con el servidor.', 'error'); 
     }
 }
 
@@ -37,17 +173,28 @@ function renderTablaContratos(datos) {
     let tbody = document.getElementById('tablaContratosBody');
     tbody.innerHTML = '';
 
+    let totalRegistros = datos.length;
+    let totalPaginas = mostrarTodoContratos ? 1 : Math.ceil(totalRegistros / filasPorPaginaContratos) || 1;
+
+    if (paginaActualContratos > totalPaginas) paginaActualContratos = totalPaginas;
+    if (paginaActualContratos < 1) paginaActualContratos = 1;
+
+    let inicio = mostrarTodoContratos ? 0 : (paginaActualContratos - 1) * filasPorPaginaContratos;
+    let fin = mostrarTodoContratos ? totalRegistros : Math.min(inicio + filasPorPaginaContratos, totalRegistros);
+
+    let datosPaginados = datos.slice(inicio, fin);
+
     let ingresoTotal = 0;
     let porVencerCount = 0;
 
-    datos.forEach((item) => {
+    // Métricas sobre el total completo de datos
+    datos.forEach(item => {
+        ingresoTotal += parseFloat(item.renta || 0);
+        if (item.estado_vencimiento !== 'Vigente') porVencerCount++;
+    });
+
+    datosPaginados.forEach((item) => {
         let rentaVal = parseFloat(item.renta || 0);
-        ingresoTotal += rentaVal;
-
-        if (item.estado_vencimiento !== 'Vigente') {
-            porVencerCount++;
-        }
-
         let badgeClass = 'vencimiento-vigente';
         let estadoTexto = `Vigente (${item.dias_restantes} d.)`;
 
@@ -60,7 +207,6 @@ function renderTablaContratos(datos) {
         }
 
         let rentaFormatted = rentaVal.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-
         let tieneAuto = (item.tiene_carro && item.tiene_carro.toLowerCase() === 'si');
         let badgeVehiculo = tieneAuto 
             ? `<span class="badge-status status-green" style="font-size:0.75rem; padding: 2px 6px;">🚗 Si</span>` 
@@ -75,14 +221,18 @@ function renderTablaContratos(datos) {
                 <td><span style="font-weight: 700; color: #6366f1; font-size: 0.88rem;">${item.nomenclatura || 'N/A'}</span></td>
                 <td><strong>${item.nombre_residente || 'N/A'}</strong></td>
                 <td>
-                    <span style="font-size: 0.82rem; color: var(--text-secondary);" title="${item.correo || ''}">
-                        📞 ${item.celular || 'S/N'}
-                    </span>
+                    <div class="col-contacto">
+                        <span class="tel-text"><i class="fas fa-phone" style="color: #ec4899; font-size: 0.75rem;"></i> ${item.celular || 'S/N'}</span>
+                        <span class="email-text"><i class="fas fa-envelope" style="font-size: 0.75rem;"></i> ${item.correo || 'S/C'}</span>
+                    </div>
                 </td>
                 <td>${badgeVehiculo}</td>
                 <td><strong>${rentaFormatted}</strong></td>
-                <td style="font-size: 0.82rem; white-space: nowrap;">
-                    ${item.fecha_move_in || 'N/A'} ➔ <strong>${item.fecha_move_out || 'N/A'}</strong>
+                <td>
+                    <div class="col-vigencia">
+                        <span class="fecha-inicio">${item.fecha_move_in || 'N/A'}</span>
+                        <span class="fecha-fin">${item.fecha_move_out || 'N/A'}</span>
+                    </div>
                 </td>
                 <td>
                     <span class="badge-status ${item.tipo_contrato === '12 meses' ? 'status-green' : 'status-yellow'}" style="font-size: 0.75rem; padding: 2px 6px;">
@@ -102,11 +252,56 @@ function renderTablaContratos(datos) {
         `;
     });
 
-    document.getElementById('statTotalContratos').innerText = datos.length;
+    document.getElementById('statTotalContratos').innerText = totalRegistros;
     document.getElementById('statIngresoTotal').innerText = ingresoTotal.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-    let promedio = datos.length > 0 ? (ingresoTotal / datos.length) : 0;
+    let promedio = totalRegistros > 0 ? (ingresoTotal / totalRegistros) : 0;
     document.getElementById('statRentaPromedio').innerText = promedio.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
     document.getElementById('statPorVencer').innerText = porVencerCount;
+
+    actualizarControlesPaginacionContratos(totalRegistros, totalPaginas, inicio, fin);
+}
+
+function actualizarControlesPaginacionContratos(totalRegistros, totalPaginas, inicio, fin) {
+    let selectPagina = document.getElementById('selectPaginaContratos');
+    if (selectPagina) {
+        selectPagina.innerHTML = '';
+        for (let i = 1; i <= totalPaginas; i++) {
+            selectPagina.innerHTML += `<option value="${i}" ${i === paginaActualContratos ? 'selected' : ''}>${i}</option>`;
+        }
+        selectPagina.disabled = mostrarTodoContratos;
+    }
+
+    let textoRango = document.getElementById('textoRangoFilasContratos');
+    if (textoRango) {
+        if (totalRegistros === 0) {
+            textoRango.innerText = 'Mostrando 0 de 0';
+        } else {
+            textoRango.innerText = `Mostrando ${inicio + 1} - ${fin} de ${totalRegistros}`;
+        }
+    }
+}
+
+function cambiarPaginaDirectaContratos(num) {
+    paginaActualContratos = parseInt(num) || 1;
+    renderTablaContratos(contratosFiltrados);
+}
+
+function cambiarPaginaRelativeContratos(delta) {
+    paginaActualContratos += delta;
+    renderTablaContratos(contratosFiltrados);
+}
+
+function cambiarFilasPorPaginaContratos(val) {
+    filasPorPaginaContratos = parseInt(val) || 25;
+    paginaActualContratos = 1;
+    renderTablaContratos(contratosFiltrados);
+}
+
+function toggleMostrarTodoContratos(checked) {
+    mostrarTodoContratos = checked;
+    document.getElementById('selectFilasPorPaginaContratos').disabled = checked;
+    paginaActualContratos = 1;
+    renderTablaContratos(contratosFiltrados);
 }
 
 function aplicarFiltrosContratos() {
@@ -146,9 +341,6 @@ function filtrarPorChip(tipo, el) {
     aplicarFiltrosContratos();
 }
 
-// ----------------------------------------------------
-// LÓGICA 1: RENOVACIÓN CON/SIN CAMBIO DE DEPARTAMENTO
-// ----------------------------------------------------
 function abrirModalRenovar(nomenclatura) {
     contratoSeleccionado = contratosData.find(c => c.nomenclatura === nomenclatura);
     if (!contratoSeleccionado) return;
@@ -198,8 +390,6 @@ function prepararNivelesRenovacion() {
     let libres = listaResidentesOriginal.filter(r => estaEspacioDesocupado(r)).map(r => r.nivel).filter(Boolean);
     let selNivel = document.getElementById('inpNivelRenov');
     selNivel.innerHTML = `<option value="">-- Seleccionar --</option>`;
-    
-    // ORDENAMIENTO CORRECTO: PB -> N2 -> N3 ... -> N12
     ordenarNiveles([...new Set(libres)]).forEach(n => { 
         selNivel.innerHTML += `<option value="${n}">${n}</option>`; 
     });
@@ -257,13 +447,21 @@ function cerrarModalRenovar() {
 async function guardarRenovacion() {
     if (!contratoSeleccionado) return;
 
-    let nuevaFecha = document.getElementById('inpNuevaFechaOut').value;
+    let nuevaFechaStr = document.getElementById('inpNuevaFechaOut').value;
     let nuevaRenta = parseFloat(document.getElementById('inpNuevaRenta').value);
     let cambiaUnidad = document.getElementById('inpCambiaUnidadRenovacion').value === 'SI';
     let nomNueva = cambiaUnidad ? document.getElementById('inpNomenclaturaRenov').value : contratoSeleccionado.nomenclatura;
 
-    if (!nuevaFecha || isNaN(nuevaRenta)) {
+    if (!nuevaFechaStr || isNaN(nuevaRenta)) {
         mostrarNotificacion('Ingresa valores válidos para la fecha y renta.', 'error');
+        return;
+    }
+
+    let fechaOutAnterior = new Date(contratoSeleccionado.fecha_move_out);
+    let nuevaFecha = new Date(nuevaFechaStr);
+
+    if (nuevaFecha <= fechaOutAnterior) {
+        mostrarNotificacion(`La nueva fecha de salida (${nuevaFechaStr}) debe ser posterior a la fecha de vencimiento actual (${contratoSeleccionado.fecha_move_out}).`, 'error');
         return;
     }
 
@@ -273,7 +471,7 @@ async function guardarRenovacion() {
         nomenclatura_anterior: contratoSeleccionado.nomenclatura,
         nomenclatura_nueva: nomNueva,
         fecha_out_anterior: contratoSeleccionado.fecha_move_out,
-        nueva_fecha_out: nuevaFecha,
+        nueva_fecha_out: nuevaFechaStr,
         renta_anterior: contratoSeleccionado.renta,
         nueva_renta: nuevaRenta,
         plazo_extension: document.getElementById('inpPlazoExtension').value + ' meses',
@@ -282,7 +480,7 @@ async function guardarRenovacion() {
     };
 
     try {
-        let response = await fetch('api_contratos.php', {
+        let response = await fetch('../API/api_contratos.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -301,22 +499,18 @@ async function guardarRenovacion() {
     }
 }
 
-// ----------------------------------------------------
-// LÓGICA 2: ASIGNACIÓN / GESTIÓN DE VEHÍCULO EN CONTRATOS
-// ----------------------------------------------------
 async function abrirModalAuto(nomenclatura) {
     contratoSeleccionado = contratosData.find(c => c.nomenclatura === nomenclatura);
     if (!contratoSeleccionado) return;
 
     document.getElementById('autoResidenteInfo').innerText = `${contratoSeleccionado.nombre_residente} (${contratoSeleccionado.nomenclatura})`;
-    
+    document.getElementById('inpMotivoAutoModal').value = '';
+    evaluarOpcionAuto();
+    document.getElementById('modalAutoOverlay').style.display = 'flex';
     try {
-        // 1. Consultar si ya tiene auto registrado
-        let resp = await fetch(`api_contratos.php?action=obtener_auto&nomenclatura=${encodeURIComponent(nomenclatura)}`);
+        let resp = await fetch(`../API/api_contratos.php?action=obtener_auto&nomenclatura=${encodeURIComponent(nomenclatura)}`);
         let res = await resp.json();
-        let cajonActual = (res.status === 'success' && res.data && res.data.cajon) ? String(res.data.cajon).trim().toLowerCase() : '';
 
-        // 2. Obtener cajones ocupados por OTROS residentes
         let cajonesOcupados = listaResidentesOriginal
             .filter(r => r.nombre && r.nombre.trim() !== '' && r.nomenclatura !== nomenclatura)
             .map(r => r.cajon)
@@ -326,7 +520,6 @@ async function abrirModalAuto(nomenclatura) {
         let selCajon = document.getElementById('inpCajonAutoModal');
         selCajon.innerHTML = `<option value="">-- Seleccionar Cajón --</option>`;
 
-        // 3. Poblar solo cajones libres o el actual del residente
         for (let i = 1; i <= 40; i++) {
             let nombreCajon = "cajón " + i;
             let numeroCajonStr = String(i);
@@ -351,9 +544,7 @@ async function abrirModalAuto(nomenclatura) {
             document.getElementById('inpTagAutoModal').value = '';
             document.getElementById('inpPlacasAutoModal').value = '';
         }
-    } catch (e) { 
-        console.error(e); 
-    }
+    } catch (e) { console.error(e); }
 
     evaluarOpcionAuto();
     document.getElementById('modalAutoOverlay').style.display = 'flex';
@@ -384,6 +575,19 @@ async function guardarVehiculo() {
     if (!contratoSeleccionado) return;
 
     let opcion = document.getElementById('inpOpcionAuto').value;
+    let motivo = document.getElementById('inpMotivoAutoModal').value.trim();
+
+    if (!motivo) {
+        mostrarNotificacion('Por favor ingresa el motivo del cambio o asignación.', 'error');
+        document.getElementById('inpMotivoAutoModal').focus();
+        return;
+    }
+
+    if (opcion === 'RETIRAR') {
+        let confirmar = confirm(`¿Estás seguro de retirar el vehículo y liberar el cajón de ${contratoSeleccionado.nombre_residente}?`);
+        if (!confirmar) return;
+    }
+
     let payload = {
         action: 'guardar_auto',
         nomenclatura: contratoSeleccionado.nomenclatura,
@@ -393,7 +597,8 @@ async function guardarVehiculo() {
         modelo: document.getElementById('inpModeloAutoModal').value.trim(),
         color: document.getElementById('inpColorAutoModal').value.trim(),
         tag: document.getElementById('inpTagAutoModal').value.trim(),
-        placas: document.getElementById('inpPlacasAutoModal').value.trim()
+        placas: document.getElementById('inpPlacasAutoModal').value.trim(),
+        motivo: motivo
     };
 
     if (opcion === 'ASIGNAR' && (!payload.cajon || !payload.placas)) {
@@ -402,7 +607,7 @@ async function guardarVehiculo() {
     }
 
     try {
-        let response = await fetch('api_contratos.php', {
+        let response = await fetch('../API/api_contratos.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -421,16 +626,13 @@ async function guardarVehiculo() {
     }
 }
 
-// ----------------------------------------------------
-// HISTÓRICO COMBINADO (RENOVACIONES Y CAMBIOS)
-// ----------------------------------------------------
 async function verHistorico(nomenclatura, residente) {
     let contenedor = document.getElementById('historicoContenido');
     contenedor.innerHTML = '<p>Cargando historial...</p>';
     document.getElementById('modalHistoricoOverlay').style.display = 'flex';
 
     try {
-        let resp = await fetch(`api_contratos.php?action=historico&nomenclatura=${encodeURIComponent(nomenclatura)}&residente=${encodeURIComponent(residente)}`);
+        let resp = await fetch(`../API/api_contratos.php?action=historico&nomenclatura=${encodeURIComponent(nomenclatura)}&residente=${encodeURIComponent(residente)}`);
         let res = await resp.json();
 
         if (res.status === 'success') {

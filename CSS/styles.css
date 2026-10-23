@@ -634,3 +634,53 @@ body.dark-mode .form-col select {
 .action-buttons-group .btn-table:hover {
     transform: translateY(-2px);
 }
+
+/* =========================================================
+   ESTILOS PARA COLUMNAS APILADAS (CONTACTO Y VIGENCIA)
+   ========================================================= */
+
+/* Columna CONTACTO: Teléfono y Correo apilados */
+.col-contacto {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    justify-content: center;
+}
+
+.col-contacto .tel-text {
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.col-contacto .email-text {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+/* Columna VIGENCIA CONTRATO: Fecha Inicio y Fin apiladas */
+.col-vigencia {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+}
+
+.col-vigencia .fecha-inicio {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.col-vigencia .fecha-fin {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 0.85rem;
+}

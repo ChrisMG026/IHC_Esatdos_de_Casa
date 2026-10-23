@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Gestión de Contratos</title>
-    <link rel="stylesheet" href="styles.css?v=2.3">
+    <!-- FontAwesome para los íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../CSS/styles.css?v=4.0">
+    <!-- Librería SheetJS para Exportación a Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -17,11 +20,16 @@
                 <span>RESIDENTE HUB</span>
             </div>
             <ul class="nav-menu">
-                <li><a href="index.html" class="nav-item">📊 Dashboard</a></li>
-                <li><a href="index.html" class="nav-item">👤 Residentes</a></li>
-                <li><a href="Contratos.html" class="nav-item active">📄 Contratos</a></li>
-                <li><a href="#" class="nav-item">🚗 Estacionamiento</a></li>
-                <li><a href="#" class="nav-item">📈 Reportes</a></li>
+                <li><a href="../HTML/dashboard.html" class="nav-item">📊 Dashboard</a></li>
+                <li><a href="../HTML/index.html" class="nav-item">👤 Residentes</a></li>
+                <li>
+                    <a href="../HTML/Contratos.html" class="nav-item active" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>📄 Contratos</span>
+                        <span id="sidebarBadgeContratosAlertas" style="background: #ef4444; color: #fff; font-size: 0.75rem; font-weight: bold; padding: 2px 7px; border-radius: 10px; display: none;">0</span>
+                    </a>
+                </li>
+                <li><a href="../HTML/Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
+                <li><a href="../HTML/Reportes.html" class="nav-item">📈 Reportes</a></li>
                 <li><a href="#" class="nav-item">⚙️ Configuraciones</a></li>
             </ul>
         </div>
@@ -49,11 +57,31 @@
                     </select>
                 </div>
             </div>
-            <div class="user-actions">
+
+            <div class="user-actions" style="position: relative;">
                 <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
                     <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
                 </button>
-                <span>🔔</span>
+
+                <!-- BOTÓN DE NOTIFICACIONES CON CAMPANA Y DROPDOWN -->
+                <div style="position: relative;">
+                    <button id="btnNotificaciones" onclick="togglePanelNotificaciones()" style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; position: relative;">
+                        🔔
+                        <span id="headerBadgeNotif" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 0.7rem; font-weight: bold; padding: 2px 5px; border-radius: 50%; display: none;">0</span>
+                    </button>
+
+                    <!-- PANEL DESPLEGABLE DE NOTIFICACIONES -->
+                    <div id="panelNotificaciones" style="display: none; position: absolute; right: 0; top: 38px; width: 340px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 10px;">
+                            <strong style="font-size: 0.95rem; color: var(--text-primary);">Contratos Pendientes / Vencidos</strong>
+                            <span onclick="togglePanelNotificaciones()" style="cursor: pointer; color: var(--text-secondary); font-size: 1.1rem;">&times;</span>
+                        </div>
+                        <div id="listaNotificacionesContenido" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Llenado dinámico -->
+                        </div>
+                    </div>
+                </div>
+
                 <span>👤 Admin ˅</span>
             </div>
         </header>
@@ -116,15 +144,48 @@
                     <tbody id="tablaContratosBody"></tbody>
                 </table>
             </div>
+            <!-- BARRA DE PAGINACIÓN CONTRATOS -->
+<div class="pagination-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 10px 10px; font-size: 0.88rem; margin-top: -1px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span>Página:</span>
+        <select id="selectPaginaContratos" onchange="cambiarPaginaDirectaContratos(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;"></select>
+        
+        <div style="display: flex; gap: 4px;">
+            <button class="btn-table" onclick="cambiarPaginaRelativeContratos(-1)" title="Página anterior">❮</button>
+            <button class="btn-table" onclick="cambiarPaginaRelativeContratos(1)" title="Página siguiente">❯</button>
+        </div>
+
+        <span style="border-left: 1px solid var(--border-color); height: 18px; margin: 0 4px;"></span>
+
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="chkMostrarTodoContratos" onchange="toggleMostrarTodoContratos(this.checked)">
+            Mostrar todo
+        </label>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span id="textoRangoFilasContratos" style="color: var(--text-secondary); font-size: 0.82rem;">Mostrando 0 - 0 de 0</span>
+        
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span>Número de filas:</span>
+            <select id="selectFilasPorPaginaContratos" onchange="cambiarFilasPorPaginaContratos(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;">
+                <option value="15">15</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+    </div>
+</div>
         </div>
 
         <footer>
-            <span>Versión 0.2.2 - Control de Renovación, Unidades y Estacionamiento</span>
+            <span>Versión 0.2.5 - Control de Renovación, Unidades y Estacionamiento</span>
             <span>Copyright © Amante 2026</span>
         </footer>
     </div>
 
-    <!-- MODAL DE RENOVACIÓN DE CONTRATO (CON OPCIÓN DE CAMBIO DE DEPARTAMENTO) -->
+    <!-- MODAL DE RENOVACIÓN DE CONTRATO -->
     <div id="modalRenovarOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
         <div class="modal-card" style="max-width: 580px; width: 92%; padding: 24px; border-radius: 12px; background: var(--bg-card); max-height: 85vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
@@ -156,7 +217,6 @@
                     </div>
                 </div>
 
-                <!-- CAMBIO DE UNIDAD EN LA MISMA RENOVACIÓN -->
                 <div style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
                     <label style="font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">¿Desea cambiar de Departamento / Unidad en esta renovación?</label>
                     <select id="inpCambiaUnidadRenovacion" onchange="evaluarCambioUnidadRenovacion()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
@@ -200,7 +260,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE GESTIÓN DE VEHÍCULO / ESTACIONAMIENTO (DISEÑO PESTAÑA ASIGNACIONES) -->
+    <!-- MODAL DE GESTIÓN DE VEHÍCULO -->
     <div id="modalAutoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
         <div class="modal-card" style="max-width: 550px; width: 92%; padding: 24px; border-radius: 12px; background: var(--bg-card);">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
@@ -220,7 +280,6 @@
                 </select>
             </div>
 
-            <!-- DISEÑO IDÉNTICO A PESTAÑA ASIGNACIONES DEL MOVE-IN -->
             <div id="bloqueCamposAuto">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div>
@@ -251,6 +310,13 @@
                     <input type="text" id="inpPlacasAutoModal" placeholder="Ej. XYZ-1234" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
                 </div>
             </div>
+            
+            <div style="margin-top: 14px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600; color: #ef4444;">
+                    * Motivo del cambio / asignación (Requerido):
+                </label>
+                <input type="text" id="inpMotivoAutoModal" placeholder="Ej. Cambio de vehículo del residente / Asignación inicial" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+            </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px;">
                 <button class="btn-table" onclick="cerrarModalAuto()" style="padding: 8px 16px;">Cancelar</button>
@@ -259,7 +325,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE HISTÓRICO COMBINADO (RENOVACIONES Y CAMBIOS) -->
+    <!-- MODAL DE HISTÓRICO -->
     <div id="modalHistoricoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
         <div class="modal-card" style="max-width: 680px; width: 92%; max-height: 80vh; display: flex; flex-direction: column; padding: 24px; border-radius: 12px; background: var(--bg-card);">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
@@ -275,9 +341,39 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN DE MOVE-OUT DIRECTO DESDE NOTIFICACIÓN -->
+    <div id="modalMoveOutOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 700px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; padding: 28px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 18px;">
+                <h3 style="margin: 0; font-size: 1.25rem; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                    ⚠️ Confirmación de Move-Out
+                </h3>
+                <span onclick="cerrarModalMoveOut()" style="cursor: pointer; font-size: 1.5rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <p style="margin-bottom: 14px; font-size: 0.95rem; color: var(--text-secondary);">
+                ¿Estás seguro de registrar la salida del residente? Se eliminará permanentemente su registro de <strong>Residentes, Contrato y Estacionamiento</strong>.
+            </p>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-weight: 600; font-size: 0.88rem; color: #ef4444; display: block; margin-bottom: 6px;">
+                    * Motivo de Salida (Requerido para la bitácora):
+                </label>
+                <input type="text" id="inpMotivoMoveOut" placeholder="Ej. Fin de contrato, Graduación..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+            </div>
+
+            <div id="moveoutDetallesContenedor" style="overflow-y: auto; max-height: 45vh; display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; padding-right: 4px;"></div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 14px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <button class="btn-table" onclick="cerrarModalMoveOut()" style="padding: 10px 22px; font-weight: 600;">Cancelar</button>
+                <button class="btn-table" onclick="ejecutarMoveOutConfirmado()" style="background-color: #ef4444; color: #fff; padding: 10px 24px; font-weight: 700; border: none; border-radius: 6px; cursor: pointer;">Confirmar Salida (Move-Out)</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-    <script src="contratos.js?v=2.0"></script>
+    <script src="../JavaScript/contratos.js?v=2.5"></script>
 </body>
 </html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Gestión de Estacionamiento</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../CSS/styles.css?v=3.3">
+    <!-- Librerías para Excel y generación de Código QR -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        .parking-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .parking-tab-btn {
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .parking-tab-btn.active {
+            background: #6366f1;
+            color: #fff;
+        }
+        .parking-tab-content {
+            display: none;
+        }
+        .parking-tab-content.active {
+            display: block;
+        }
+        .fila-admin {
+            background-color: rgba(147, 51, 234, 0.08) !important;
+        }
+        body.dark-mode .fila-admin {
+            background-color: rgba(147, 51, 234, 0.15) !important;
+        }
+        .badge-admin {
+            background: rgba(147, 51, 234, 0.2);
+            color: #c084fc;
+            border: 1px solid #a855f7;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: bold;
+            margin-left: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside>
+        <div>
+            <div class="brand">
+                <div class="brand-icon">R</div>
+                <span>RESIDENTE HUB</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="../HTML/dashboard.html" class="nav-item">📊 Dashboard</a></li>
+                <li><a href="../HTML/index.html" class="nav-item">👤 Residentes</a></li>
+                <li><a href="../HTML/Contratos.html" class="nav-item">📄 Contratos</a></li>
+                <li><a href="../HTML/Estacionamiento.html" class="nav-item active">🚗 Estacionamiento</a></li>
+                <li><a href="../HTML/Reportes.html" class="nav-item">📈 Reportes</a></li>
+                <li><a href="#" class="nav-item">⚙️ Configuraciones</a></li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- WRAPPER PRINCIPAL -->
+    <div class="main-wrapper">
+        <header>
+            <div class="search-container" style="width: 50%;">
+                <span style="color: #94a3b8;">🔍</span>
+                <input type="text" id="searchInput" placeholder="Buscar por cajón, residente, placas o nomenclatura..." oninput="aplicarFiltrosEstacionamiento()">
+                
+                <div class="filter-dropdowns">
+                    <select id="filterEstadoCajon" onchange="aplicarFiltrosEstacionamiento()">
+                        <option value="">Estado</option>
+                        <option value="Ocupado">Ocupados</option>
+                        <option value="Disponible">Disponibles</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="user-actions">
+                <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
+                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                </button>
+                <span>👤 Admin ˅</span>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="page-title-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>Control y Gestión de Estacionamiento</h1>
+                <button onclick="exportarExcelEstacionamiento()" style="background-color: #10b981; color: #fff; font-weight: 700; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    📊 Exportar a Excel (.xlsx)
+                </button>
+            </div>
+
+            <!-- TARJETAS MÉTRICAS -->
+            <div class="stats-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                <div class="stat-card">
+                    <div class="label">Total Cajones Residentes</div>
+                    <div class="val" id="statTotalCajones">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Cajones Ocupados</div>
+                    <div class="val" id="statCajonesOcupados" style="color: #6366f1;">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Cajones Disponibles</div>
+                    <div class="val" id="statCajonesDisponibles" style="color: #10b981;">0</div>
+                </div>
+            </div>
+
+            <!-- PESTAÑAS INTERNAS -->
+            <div class="parking-tabs">
+                <button class="parking-tab-btn active" onclick="cambiarPestanaEstacionamiento('residentes', this)">🚗 Cajones de Residentes</button>
+                <button class="parking-tab-btn" onclick="cambiarPestanaEstacionamiento('admin', this)">🏢 Estacionamiento de Administración</button>
+            </div>
+
+            <!-- CONTENIDO PESTAÑA 1: RESIDENTES -->
+            <div id="tabResidentes" class="parking-tab-content active">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cajón ▴</th>
+                                <th>No. Tag</th>
+                                <th>Nombre Residente</th>
+                                <th>Nomenclatura</th>
+                                <th>Modelo Auto</th>
+                                <th>Color</th>
+                                <th>Placas</th>
+                                <th style="text-align: center;">Estado</th>
+                                <th style="text-align: center;">Acceso QR (TAG)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaEstacionamientoBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CONTENIDO PESTAÑA 2: ADMINISTRACIÓN -->
+            <div id="tabAdmin" class="parking-tab-content">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cajón Administrativo ▴</th>
+                                <th>No. Tag</th>
+                                <th>Personal Asignado</th>
+                                <th>Modelo Auto</th>
+                                <th>Color</th>
+                                <th>Placas</th>
+                                <th style="text-align: center;">Acceso QR (TAG)</th>
+                                <th style="text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaAdminBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <footer>
+            <span>Versión 0.1.3 - Control de Cajones y Códigos QR de Acceso</span>
+            <span>Copyright © Amante 2026</span>
+        </footer>
+    </div>
+
+    <!-- MODAL DE CÓDIGO QR PARA PLUMAS -->
+    <div id="modalQROverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; border-radius: 16px; background: var(--bg-card); text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: var(--text-primary); font-size: 1.1rem;">📷 QR de Acceso (TAG)</h3>
+                <span onclick="cerrarModalQR()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <p id="qrInfoSub" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 14px;"></p>
+
+            <!-- CONTENEDOR DEL CÓDIGO QR -->
+            <div id="qrcodeContainer" style="background: #ffffff; padding: 15px; border-radius: 12px; display: inline-block; margin-bottom: 16px; border: 1px solid #e2e8f0;"></div>
+
+            <div style="background: var(--bg-main); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 1.1rem; font-weight: bold; color: #6366f1; margin-bottom: 18px;" id="qrTagTexto"></div>
+
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-table" onclick="cerrarModalQR()" style="padding: 8px 16px;">Cerrar</button>
+                <button class="btn-table" onclick="window.print()" style="background: #6366f1; color: #fff; padding: 8px 16px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer;">🖨️ Imprimir QR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR CAJÓN ADMINISTRATIVO -->
+    <div id="modalAdminOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 500px; width: 92%; padding: 24px; border-radius: 12px; background: var(--bg-card);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 id="modalAdminTitulo" style="margin: 0; color: var(--text-primary);">Editar Cajón Exclusivo</h3>
+                <span onclick="cerrarModalAdmin()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <input type="hidden" id="adminCajonNombre">
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div>
+                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Personal / Nombre Asignado:</label>
+                    <input type="text" id="adminNombre" placeholder="Ej. Julio Guardado" style="width: 100%; padding: 9px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Número de Tag:</label>
+                        <input type="text" id="adminTag" placeholder="Ej. 18644051" style="width: 100%; padding: 9px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Placas:</label>
+                        <input type="text" id="adminPlacas" placeholder="Ej. RSA404B" style="width: 100%; padding: 9px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Modelo del Auto:</label>
+                        <input type="text" id="adminModelo" placeholder="Ej. KICKS" style="width: 100%; padding: 9px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Color:</label>
+                        <input type="text" id="adminColor" placeholder="Ej. blanca" style="width: 100%; padding: 9px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                <button class="btn-table" onclick="cerrarModalAdmin()" style="padding: 8px 16px;">Cancelar</button>
+                <button class="btn-table" onclick="guardarCajonAdmin()" style="background: #9333ea; color: #fff; font-weight: 700; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer;">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <script src="../JavaScript/estacionamiento.js?v=1.3"></script>
+</body>
+</html>
