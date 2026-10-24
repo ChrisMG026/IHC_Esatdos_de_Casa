@@ -78,34 +78,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $recamaraNueva   = $data['recamara_nueva'];
 
             if ($nomAnterior !== $nomNueva) {
-                $stmtU1 = $conn->prepare("UPDATE residentes SET dep = ?, recamara = ?, nomenclatura = ?, renta = ? WHERE nomenclatura = ?");
-                $stmtU1->bind_param("sssss", $depNuevo, $recamaraNueva, $nomNueva, $nuevaRenta, $nomAnterior);
+                // CORRECCIÓN: La tabla 'residentes' NO tiene renta ni recámara. Solo actualizamos la nomenclatura.
+                $stmtU1 = $conn->prepare("UPDATE residentes SET nomenclatura = ? WHERE nomenclatura = ?");
+                $stmtU1->bind_param("ss", $nomNueva, $nomAnterior);
                 $stmtU1->execute();
+                $stmtU1->close();
 
                 $stmtU2 = $conn->prepare("UPDATE estacionamiento SET nomenclatura = ? WHERE nomenclatura = ?");
                 $stmtU2->bind_param("ss", $nomNueva, $nomAnterior);
                 $stmtU2->execute();
+                $stmtU2->close();
 
                 $stmtU3 = $conn->prepare("UPDATE contrato SET numero_departamento = ?, recamara = ?, nomenclatura = ?, fecha_move_out = ?, renta = ? WHERE nomenclatura = ?");
                 $stmtU3->bind_param("ssssds", $depNuevo, $recamaraNueva, $nomNueva, $nuevaFechaOut, $nuevaRenta, $nomAnterior);
                 $stmtU3->execute();
+                $stmtU3->close();
 
                 $stmtB = $conn->prepare("INSERT INTO cambio_unidad (residente, nomenclatura_inicial, nomenclatura_nueva, motivo_cambio, fecha_cambio) VALUES (?, ?, ?, 'Renovación con cambio de unidad', CURDATE())");
                 $stmtB->bind_param("sss", $residente, $nomAnterior, $nomNueva);
                 $stmtB->execute();
+                $stmtB->close();
             } else {
+                // CORRECCIÓN: La renta se actualiza únicamente en la tabla 'contrato'. Eliminamos la consulta errónea a 'residentes'.
                 $stmtR = $conn->prepare("UPDATE contrato SET fecha_move_out = ?, renta = ? WHERE nomenclatura = ?");
                 $stmtR->bind_param("sds", $nuevaFechaOut, $nuevaRenta, $nomAnterior);
                 $stmtR->execute();
-
-                $stmtR2 = $conn->prepare("UPDATE residentes SET renta = ? WHERE nomenclatura = ?");
-                $stmtR2->bind_param("ds", $nuevaRenta, $nomAnterior);
-                $stmtR2->execute();
+                $stmtR->close();
             }
 
+            // Registro histórico en la tabla renovacion_contrato
             $stmtRen = $conn->prepare("INSERT INTO renovacion_contrato (residente, nomenclatura_anterior, nomenclatura_nueva, fecha_out_anterior, fecha_out_nueva, renta_anterior, renta_nueva, plazo_extension) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmtRen->bind_param("sssssdds", $residente, $nomAnterior, $nomNueva, $fechaOutAnt, $nuevaFechaOut, $rentaAnt, $nuevaRenta, $plazo);
             $stmtRen->execute();
+            $stmtRen->close();
 
             $conn->commit();
             echo json_encode(["status" => "success", "message" => "Renovación procesada y registrada exitosamente."]);
@@ -116,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->close();
         exit;
     }
-
+    
     // 2. GESTIÓN DE VEHÍCULO / CAJÓN
     if ($action === 'guardar_auto') {
         $nomenclatura = $data['nomenclatura'];
