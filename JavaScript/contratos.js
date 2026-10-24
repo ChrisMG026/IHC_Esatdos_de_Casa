@@ -382,6 +382,12 @@ function evaluarCambioUnidadRenovacion() {
 
 function estaEspacioDesocupado(item) {
     let dep = String(item.dep || '').trim(), nom = String(item.nomenclatura || '').trim().toUpperCase();
+    
+    // Si el departamento está deshabilitado en la base de datos, lo ignoramos por completo
+    if (item.estado_dep === 'Deshabilitado' || item.estado === 'Deshabilitado') {
+        return false;
+    }
+
     if (dep === '103' || nom === '104-A1') return false;
     return !(item.nombre && item.nombre.trim() !== '');
 }
@@ -507,7 +513,22 @@ async function abrirModalAuto(nomenclatura) {
     document.getElementById('inpMotivoAutoModal').value = '';
     evaluarOpcionAuto();
     document.getElementById('modalAutoOverlay').style.display = 'flex';
+    
     try {
+        // Cargar configuración para conocer cajones deshabilitados
+        let configResp = await fetch('../API/api_configuraciones.php');
+        let configRes = await configResp.json();
+        let cajonesDeshabSet = new Set();
+        if (configRes.status === 'success' && configRes.cajones) {
+            configRes.cajones.forEach(c => {
+                if (c.estado === 'Deshabilitado') {
+                    let nc = String(c.nombre_cajon).trim().toLowerCase();
+                    cajonesDeshabSet.add(nc);
+                    cajonesDeshabSet.add(nc.replace('cajón ', '').replace('cajon ', ''));
+                }
+            });
+        }
+
         let resp = await fetch(`../API/api_contratos.php?action=obtener_auto&nomenclatura=${encodeURIComponent(nomenclatura)}`);
         let res = await resp.json();
 
@@ -524,7 +545,10 @@ async function abrirModalAuto(nomenclatura) {
             let nombreCajon = "cajón " + i;
             let numeroCajonStr = String(i);
 
-            if (!cajonesOcupados.includes(nombreCajon) && !cajonesOcupados.includes(numeroCajonStr)) {
+            let estaOcupado = cajonesOcupados.includes(nombreCajon) || cajonesOcupados.includes(numeroCajonStr);
+            let estaDeshabilitado = cajonesDeshabSet.has(numeroCajonStr) || cajonesDeshabSet.has(nombreCajon);
+
+            if (!estaOcupado && !estaDeshabilitado) {
                 selCajon.innerHTML += `<option value="Cajón ${i}">Cajón ${i}</option>`;
             }
         }

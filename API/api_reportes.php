@@ -38,13 +38,25 @@ $sqlRenovacion = "SELECT residente, nomenclatura_anterior, nomenclatura_nueva, f
 $res5 = $conn->query($sqlRenovacion);
 $renovacionContrato = $res5 ? $res5->fetch_all(MYSQLI_ASSOC) : [];
 
+// 6. DEPARTAMENTOS DESHABILITADOS
+$sqlDepsDesh = "SELECT nomenclatura, numero_dep, razon, fecha_deshabilitacion FROM departamentos_deshabilitados ORDER BY fecha_deshabilitacion DESC";
+$res6 = $conn->query($sqlDepsDesh);
+$departamentosDeshabilitados = $res6 ? $res6->fetch_all(MYSQLI_ASSOC) : [];
+
+// 7. CAJONES DESHABILITADOS
+$sqlCajonesDesh = "SELECT nombre_cajon, razon, fecha_deshabilitacion FROM cajones_deshabilitados ORDER BY fecha_deshabilitacion DESC";
+$res7 = $conn->query($sqlCajonesDesh);
+$cajonesDeshabilitados = $res7 ? $res7->fetch_all(MYSQLI_ASSOC) : [];
+
 echo json_encode([
     "status" => "success",
     "cambios_cajon" => $cambiosCajon,
     "cambio_unidad" => $cambioUnidad,
     "move_in" => $moveIn,
     "move_out" => $moveOut,
-    "renovacion_contrato" => $renovacionContrato
+    "renovacion_contrato" => $renovacionContrato,
+    "departamentos_deshabilitados" => $departamentosDeshabilitados,
+    "cajones_deshabilitados" => $cajonesDeshabilitados
 ], JSON_UNESCAPED_UNICODE);
 
 $conn->close();

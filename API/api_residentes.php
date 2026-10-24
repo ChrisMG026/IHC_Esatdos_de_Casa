@@ -13,8 +13,9 @@ if ($conn->connect_error) {
 
 $conn->set_charset("utf8mb4");
 
-// CONSULTA OPTIMIZADA: Cálculos de nivel, tipología y estados directo en SQL
+// CONSULTA OPTIMIZADA: Se incluye d.estado AS estado_dep para filtrar los deshabilitados
 $sql = "SELECT 
+            d.estado AS estado_dep,
             COALESCE(c.nombre_residente, r.nombre_completo) AS nombre,
             c.celular AS telefono,
             c.correo AS correo,

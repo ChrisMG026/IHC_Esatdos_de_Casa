@@ -5,9 +5,45 @@ let timeoutBusqueda = null;
 let paginaActual = 1;
 let filasPorPagina = 25;
 let mostrarTodo = false;
+let nomenclaturasDeshabilitadasSet = new Set();
+let departamentosDeshabilitadosSet = new Set();
+let cajonesDeshabilitadosSet = new Set();
 
 async function cargarResidentesDesdeBD() {
     try {
+        // Cargar estados deshabilitados (tanto departamentos como cajones)
+        try {
+            let configResp = await fetch('../API/api_configuraciones.php');
+            let configRes = await configResp.json();
+            nomenclaturasDeshabilitadasSet.clear();
+            departamentosDeshabilitadosSet.clear();
+            cajonesDeshabilitadosSet.clear(); // Limpiar set de cajones
+            
+            if (configRes.status === 'success') {
+                if (configRes.departamentos) {
+                    configRes.departamentos.forEach(d => {
+                        if (d.estado === 'Deshabilitado') {
+                            if (d.nomenclatura) nomenclaturasDeshabilitadasSet.add(String(d.nomenclatura).trim().toUpperCase());
+                            let numDep = String(d.numero_dep || d.dep || '').trim();
+                            if (numDep) departamentosDeshabilitadosSet.add(numDep);
+                        }
+                    });
+                }
+                if (configRes.cajones) {
+                    configRes.cajones.forEach(c => {
+                        if (c.estado === 'Deshabilitado') {
+                            // Guardar nombre y número normalizado del cajón (ej: "2", "cajón 2", "cajon 2")
+                            let nombreC = String(c.nombre_cajon).trim().toLowerCase();
+                            cajonesDeshabilitadosSet.add(nombreC);
+                            cajonesDeshabilitadosSet.add(nombreC.replace('cajón ', '').replace('cajon ', '').replace('cajón', '').replace('cajon', ''));
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("No se pudieron cargar los estados de configuración:", err);
+        }
+
         let response = await fetch('../API/api_residentes.php');
         residentesData = await response.json();
         
@@ -20,7 +56,6 @@ async function cargarResidentesDesdeBD() {
         mostrarNotificacion('Error crítico: Falló la conexión con el servidor al cargar datos.', 'error');
     }
 }
-
 function mostrarNotificacion(mensaje, tipo = 'success') {
     let container = document.getElementById('toastContainer');
     if (!container) return;
@@ -401,9 +436,16 @@ function cerrarModalDetalles() { document.getElementById('modalDetallesOverlay')
 
 function estaEspacioDesocupado(item) {
     let dep = String(item.dep || '').trim(), nom = String(item.nomenclatura || '').trim().toUpperCase();
+    
+    // Si el departamento está deshabilitado en la base de datos, lo ignoramos por completo
+    if (item.estado_dep === 'Deshabilitado' || item.estado === 'Deshabilitado') {
+        return false;
+    }
+
     if (dep === '103' || nom === '104-A1') return false;
     return !(item.nombre && item.nombre.trim() !== '');
 }
+
 
 function prepararCatalogosModal() {
     let nivelesLibres = residentesData.filter(r => estaEspacioDesocupado(r)).map(r => r.nivel).filter(Boolean);
@@ -411,14 +453,38 @@ function prepararCatalogosModal() {
     selNivel.innerHTML = `<option value="">-- Seleccionar --</option>`;
     ordenarNiveles([...new Set(nivelesLibres)]).forEach(n => { selNivel.innerHTML += `<option value="${n}">${n}</option>`; });
 
-    let cajonesOcupados = residentesData.filter(r => r.nombre && r.nombre.trim() !== '').map(r => r.cajon).filter(Boolean).map(c => String(c).trim().toLowerCase());
-    let selCajon = document.getElementById('inpCajonModal');
-    selCajon.innerHTML = `<option value="">-- Seleccionar Cajón --</option>`;
-    for (let i = 1; i <= 40; i++) {
-        if (!cajonesOcupados.includes("cajón " + i) && !cajonesOcupados.includes(String(i))) {
-            selCajon.innerHTML += `<option value="Cajón ${i}">Cajón ${i}</option>`;
-        }
-    }
+   let cajonesOcupados = residentesData.filter(r => r.nombre && r.nombre.trim() !== '').map(r => r.cajon).filter(Boolean).map(c => String(c).trim().toLowerCase());
+   let selCajon = document.getElementById('inpCajonModal');
+
+   if (selCajon) {
+       selCajon.innerHTML = `<option value="">-- Seleccionar Cajón --</option>`;
+       
+       for (let i = 1; i <= 40; i++) {
+           let numStr = String(i);
+           let formato1 = "cajón " + i;
+           let formato2 = "cajon " + i;
+           let formato3 = "cajón" + i;
+           let formato4 = i.toString();
+
+           // Verificamos si está ocupado
+           let estaOcupado = cajonesOcupados.includes(formato1) || 
+                             cajonesOcupados.includes(formato2) || 
+                             cajonesOcupados.includes(formato3) || 
+                             cajonesOcupados.includes(formato4);
+
+           // Verificamos si está deshabilitado en el Set con múltiples variaciones de texto
+           let estaDeshabilitado = cajonesDeshabilitadosSet.has(numStr) || 
+                                   cajonesDeshabilitadosSet.has(formato1) || 
+                                   cajonesDeshabilitadosSet.has(formato2) ||
+                                   cajonesDeshabilitadosSet.has("cajón " + i) ||
+                                   cajonesDeshabilitadosSet.has("cajon " + i);
+
+           // Si NO está ocupado y NO está deshabilitado, lo agregamos a las opciones
+           if (!estaOcupado && !estaDeshabilitado) {
+               selCajon.innerHTML += `<option value="Cajón ${i}">Cajón ${i}</option>`;
+           }
+       }
+   }
 }
 
 function evaluarTieneCarro() {
@@ -672,7 +738,6 @@ async function guardarResidente() {
             await cargarResidentesDesdeBD();
             cerrarModal();
 
-            // SI ES UN NUEVO REGISTRO, MOSTRAR MODAL DE IMPRESIÓN
             if (!esEdicion) {
                 ultimoResidenteRegistrado = payload;
                 abrirModalOpcionesImpresion(payload);
@@ -681,12 +746,10 @@ async function guardarResidente() {
     } catch (error) { mostrarNotificacion('Error crítico: Falló la conexión con el servidor.', 'error'); }
 }
 
-// MOSTRAR PREGUNTA DE IMPRESIÓN AL FINALIZAR REGISTRO
 function abrirModalOpcionesImpresion(res) {
     document.getElementById('residenteImpresionNombre').innerText = res.nombre_completo;
     document.getElementById('residenteImpresionNom').innerText = res.nomenclatura;
     
-    // Si no tiene TAG, ocultar botón de QR
     let btnQR = document.getElementById('btnImprimirQRGrupo');
     if (res.numero_tag && res.numero_tag.trim() !== '') {
         btnQR.style.display = 'inline-block';
@@ -702,7 +765,6 @@ function cerrarModalPostAlta() {
     ultimoResidenteRegistrado = null;
 }
 
-// FUNCIONES DE IMPRESIÓN DIRECTA
 function imprimirCredencialDesdePostAlta() {
     if (!ultimoResidenteRegistrado) return;
     let res = {
@@ -719,7 +781,6 @@ function imprimirCredencialDesdePostAlta() {
         placas: ultimoResidenteRegistrado.placas
     };
     
-    // Buscar índice o lanzar credencial directamente
     generarCredencialObjeto(res);
 }
 
@@ -940,4 +1001,3 @@ window.onload = function() {
     }
     cargarResidentesDesdeBD();
 };
-

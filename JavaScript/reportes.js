@@ -3,7 +3,9 @@ let reportesData = {
     cambio_unidad: [],
     move_in: [],
     move_out: [],
-    renovacion_contrato: []
+    renovacion_contrato: [],
+    departamentos_deshabilitados: [],
+    cajones_deshabilitados: []
 };
 
 let reporteActivo = 'cambios_cajon';
@@ -26,6 +28,8 @@ async function cargarReportesDesdeBD() {
             reportesData.move_in = res.move_in || [];
             reportesData.move_out = res.move_out || [];
             reportesData.renovacion_contrato = res.renovacion_contrato || [];
+            reportesData.departamentos_deshabilitados = res.departamentos_deshabilitados || [];
+            reportesData.cajones_deshabilitados = res.cajones_deshabilitados || [];
 
             actualizarBadgesContadores();
             aplicarFiltroReporte();
@@ -44,6 +48,8 @@ function actualizarBadgesContadores() {
     document.getElementById('badgeMoveIn').innerText = reportesData.move_in.length;
     document.getElementById('badgeMoveOut').innerText = reportesData.move_out.length;
     document.getElementById('badgeRenovacion').innerText = reportesData.renovacion_contrato.length;
+    document.getElementById('badgeDepsDesh').innerText = reportesData.departamentos_deshabilitados.length;
+    document.getElementById('badgeCajonesDesh').innerText = reportesData.cajones_deshabilitados.length;
 }
 
 function mostrarNotificacion(mensaje, tipo = 'success') {
@@ -164,6 +170,21 @@ function renderReporteActivo() {
                         <td>${item.plazo_extension || 'N/A'}</td>
                         <td>${item.fecha_registro || 'N/A'}</td>
                     </tr>`;
+            } else if (reporteActivo === 'departamentos_deshabilitados') {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong style="color:#6366f1;">${item.nomenclatura || '---'}</strong></td>
+                        <td>Dep. ${item.numero_dep || '---'}</td>
+                        <td>${item.razon || 'Sin motivo'}</td>
+                        <td>${item.fecha_deshabilitacion || 'N/A'}</td>
+                    </tr>`;
+            } else if (reporteActivo === 'cajones_deshabilitados') {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>Cajón ${item.nombre_cajon || '---'}</strong></td>
+                        <td>${item.razon || 'Sin motivo'}</td>
+                        <td>${item.fecha_deshabilitacion || 'N/A'}</td>
+                    </tr>`;
             }
         });
     }
@@ -227,9 +248,7 @@ function exportarExcelReporteActivo() {
     mostrarNotificacion(`Reporte ${reporteActivo} exportado con éxito.`, 'success');
 }
 
-// EXPORTAR CADA REPORTE COMO UNA HOJA INDEPENDIENTE EN UN MISMO ARCHIVO DE EXCEL
 function exportarTodasLasTablasExcel() {
-    // Validar que al menos haya datos en alguno de los reportes
     let tieneDatos = Object.values(reportesData).some(arr => arr && arr.length > 0);
     
     if (!tieneDatos) {
@@ -239,19 +258,12 @@ function exportarTodasLasTablasExcel() {
 
     let workbook = XLSX.utils.book_new();
 
-    // 1. Hoja: Cambios de Cajón
     if (reportesData.cambios_cajon.length > 0) {
-        let wsCajon = XLSX.utils.json_to_sheet(reportesData.cambios_cajon);
-        XLSX.utils.book_append_sheet(workbook, wsCajon, "Cambios de Cajón");
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportesData.cambios_cajon), "Cambios de Cajón");
     }
-
-    // 2. Hoja: Cambio de Unidad
     if (reportesData.cambio_unidad.length > 0) {
-        let wsUnidad = XLSX.utils.json_to_sheet(reportesData.cambio_unidad);
-        XLSX.utils.book_append_sheet(workbook, wsUnidad, "Cambio de Unidad");
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportesData.cambio_unidad), "Cambio de Unidad");
     }
-
-    // 3. Hoja: Move-In (Sin la columna cama)
     if (reportesData.move_in.length > 0) {
         let moveInLimpio = reportesData.move_in.map(item => ({
             "No. Departamento": item.numero_departamento,
@@ -261,25 +273,23 @@ function exportarTodasLasTablasExcel() {
             "Nombre Residente": item.nombre_residente,
             "Fecha Move-In": item.move_in
         }));
-        let wsMoveIn = XLSX.utils.json_to_sheet(moveInLimpio);
-        XLSX.utils.book_append_sheet(workbook, wsMoveIn, "Move-In");
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(moveInLimpio), "Move-In");
     }
-
-    // 4. Hoja: Move-Out
     if (reportesData.move_out.length > 0) {
-        let wsMoveOut = XLSX.utils.json_to_sheet(reportesData.move_out);
-        XLSX.utils.book_append_sheet(workbook, wsMoveOut, "Move-Out");
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportesData.move_out), "Move-Out");
     }
-
-    // 5. Hoja: Renovación de Contrato
     if (reportesData.renovacion_contrato.length > 0) {
-        let wsRenovacion = XLSX.utils.json_to_sheet(reportesData.renovacion_contrato);
-        XLSX.utils.book_append_sheet(workbook, wsRenovacion, "Renovación de Contrato");
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportesData.renovacion_contrato), "Renovación de Contrato");
+    }
+    if (reportesData.departamentos_deshabilitados.length > 0) {
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportesData.departamentos_deshabilitados), "Deps Deshabilitados");
+    }
+    if (reportesData.cajones_deshabilitados.length > 0) {
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportesData.cajones_deshabilitados), "Cajones Deshabilitados");
     }
 
-    // Generar y descargar el archivo con todas las pestañas
     XLSX.writeFile(workbook, `Reporte_General_Completo_UTower_${new Date().toISOString().slice(0,10)}.xlsx`);
-    mostrarNotificacion('Libro completo de reportes (5 hojas) exportado con éxito.', 'success');
+    mostrarNotificacion('Libro completo de reportes (7 hojas) exportado con éxito.', 'success');
 }
 
 function toggleDarkMode() {
