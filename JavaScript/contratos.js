@@ -388,7 +388,6 @@ function estaEspacioDesocupado(item) {
         return false;
     }
 
-    if (dep === '103' || nom === '104-A1') return false;
     return !(item.nombre && item.nombre.trim() !== '');
 }
 
@@ -816,10 +815,15 @@ function toggleDarkMode() {
 }
 
 window.onload = function() {
+    // Quitar la clase de preload
+    document.documentElement.classList.remove('dark-mode-preload');
+
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        document.getElementById('themeIcon').innerText = '☀️';
-        document.getElementById('themeText').innerText = 'Modo Claro';
+        let icon = document.getElementById('themeIcon');
+        let text = document.getElementById('themeText');
+        if(icon) icon.innerText = '☀️';
+        if(text) text.innerText = 'Modo Claro';
     }
     
     cargarContratosDesdeBD().then(() => {

@@ -1,3 +1,31 @@
+/* Prevenir destello blanco si el modo oscuro está guardado */
+html.dark-mode-preload,
+html.dark-mode-preload body {
+    background-color: #0f172a !important; 
+    color: #f8fafc !important;
+}
+
+html.dark-mode-preload aside,
+html.dark-mode-preload header,
+html.dark-mode-preload .theme-toggle-btn,
+html.dark-mode-preload .search-container,
+html.dark-mode-preload .pagination-bar {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+html.dark-mode-preload .nav-item {
+    color: #94a3b8 !important;
+}
+html.dark-mode-preload .nav-item.active {
+    color: #818cf8 !important;
+    background-color: #334155 !important;
+}
+html.dark-mode-preload h1,
+html.dark-mode-preload .brand span {
+    color: #f8fafc !important;
+}
 /* --- VARIABLES DE COLOR --- */
 :root {
     --bg-main: #f1f5f9;
@@ -685,3 +713,13 @@ body.dark-mode .form-col select {
     font-size: 0.85rem;
 }
 
+@keyframes pulse-warning {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.04); opacity: 0.9; box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.vencimiento-por-vencer {
+    animation: pulse-warning 2s infinite ease-in-out;
+    display: inline-block;
+}

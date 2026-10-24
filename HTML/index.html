@@ -4,9 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Gestión de Residentes y Espacios</title>
-    <link rel="stylesheet" href="../CSS/styles.css?v=1.8">
+    <link rel="stylesheet" href="../CSS/styles.css?v=1.9">
     <!-- Librería SheetJS para Exportación a Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark-mode-preload');
+                // Si el body ya existe (raro en el head, pero por seguridad), le añadimos la clase
+                if (document.body) {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
 </head>
 <body>
 
@@ -57,7 +68,7 @@
                     </select>
                 </div>
             </div>
-
+                
             <div class="user-actions" style="position: relative;">
                 <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
                     <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
@@ -84,6 +95,7 @@
 
                 <span>👤 Admin ˅</span>
             </div>
+            
         </header>
 
         <div class="content">
@@ -361,6 +373,6 @@
     </div>
 </div>
     <!-- Script de Residentes -->
-    <script src="../JavaScript/script.js?v=5.1"></script>
+    <script src="../JavaScript/script.js?v=5.2"></script>
 </body>
 </html>

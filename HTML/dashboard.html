@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Dashboard Principal</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../CSS/styles.css?v=4.0">
+    <link rel="stylesheet" href="../CSS/styles.css?v=4.1">
     <!-- Chart.js para Gráficas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark-mode-preload');
+                // Si el body ya existe (raro en el head, pero por seguridad), le añadimos la clase
+                if (document.body) {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
 </head>
 <body>
 
@@ -33,17 +44,22 @@
     <div class="main-wrapper">
         <header>
             <div style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
-                🏢 Visión General - U-Tower Residencial
+            🏢 Visión General - U-Tower Residencial
+            </div>
+
+            <!-- Buscador global rápido -->
+            <div class="search-container" style="width: 35%;">
+                <span style="color: #94a3b8;">🔍</span>
+                <input type="text" id="dashboardGlobalSearch" placeholder="Buscar residente o nomenclatura..." onkeydown="if(event.key==='Enter'){window.location.href='index.html?search='+encodeURIComponent(this.value);}">
             </div>
 
             <div class="user-actions">
                 <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
-                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
                 </button>
                 <span>👤 Admin ˅</span>
             </div>
         </header>
-
         <div class="content">
             <!-- TARJETAS MÉTRICAS (KPIs) -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
@@ -133,6 +149,6 @@
         </footer>
     </div>
 
-    <script src="../JavaScript/dashboard.js?v=1.1"></script>
+    <script src="../JavaScript/dashboard.js?v=1.2"></script>
 </body>
 </html>

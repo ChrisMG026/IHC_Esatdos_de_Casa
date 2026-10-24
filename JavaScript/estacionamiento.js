@@ -233,10 +233,13 @@ function toggleDarkMode() {
 }
 
 window.onload = function() {
+    // Quitar la clase de preload del HTML
+    document.documentElement.classList.remove('dark-mode-preload');
+
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        document.getElementById('themeIcon').innerText = '☀️';
-        document.getElementById('themeText').innerText = 'Modo Claro';
+        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').innerText = '☀️';
+        if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarEstacionamientoDesdeBD();
 };

@@ -5,10 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Gestión de Estacionamiento</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../CSS/styles.css?v=3.3">
+    <link rel="stylesheet" href="../CSS/styles.css?v=3.4">
     <!-- Librerías para Excel y generación de Código QR -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark-mode-preload');
+                // Si el body ya existe (raro en el head, pero por seguridad), le añadimos la clase
+                if (document.body) {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
     <style>
         .parking-tabs {
             display: flex;
@@ -250,6 +261,6 @@
     <!-- TOAST -->
     <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-    <script src="../JavaScript/estacionamiento.js?v=1.3"></script>
+    <script src="../JavaScript/estacionamiento.js?v=1.4"></script>
 </body>
 </html>

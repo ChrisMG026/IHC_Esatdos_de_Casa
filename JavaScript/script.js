@@ -442,7 +442,6 @@ function estaEspacioDesocupado(item) {
         return false;
     }
 
-    if (dep === '103' || nom === '104-A1') return false;
     return !(item.nombre && item.nombre.trim() !== '');
 }
 
@@ -994,10 +993,22 @@ function toggleDarkMode() {
 }
 
 window.onload = function() {
+    let urlParams = new URLSearchParams(window.location.search);
+    let searchTerm = urlParams.get('search');
+    if (searchTerm) {
+    let searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = searchTerm;
+        setTimeout(() => aplicarFiltros(), 300);
+    }
+}
+    // Quitar la clase de preload del HTML
+    document.documentElement.classList.remove('dark-mode-preload');
+
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        document.getElementById('themeIcon').innerText = '☀️';
-        document.getElementById('themeText').innerText = 'Modo Claro';
+        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').innerText = '☀️';
+        if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarResidentesDesdeBD();
 };

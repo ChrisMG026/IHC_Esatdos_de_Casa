@@ -5,7 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Configuraciones</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../CSS/styles.css?v=4.0">
+    <link rel="stylesheet" href="../CSS/styles.css?v=4.1">
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark-mode-preload');
+                // Si el body ya existe (raro en el head, pero por seguridad), le añadimos la clase
+                if (document.body) {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
     <style>
         .config-tabs {
             display: flex;
@@ -114,6 +125,7 @@
         .btn-enabled { background: #10b981; color: white; }
         .btn-disabled { background: #ef4444; color: white; }
     </style>
+        
 </head>
 <body>
 
@@ -189,6 +201,9 @@
                                 📤 Cargar Claves Masivas
                             </label>
                             <input type="file" id="inputCSV" accept=".csv" onchange="subirCSVClaves(this)" style="display: none;">
+                            <button onclick="window.location.href='../API/api_backup.php'" style="background:#8b5cf6; color:white; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:6px;">
+                             💾 Descargar Respaldo SQL (.sql)
+                            </button>
                         </div>
                     </div>
 
@@ -284,6 +299,6 @@
     <!-- TOAST -->
     <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-    <script src="../JavaScript/configuraciones.js?v=10.1"></script>
+    <script src="../JavaScript/configuraciones.js?v=10.2"></script>
 </body>
 </html>
