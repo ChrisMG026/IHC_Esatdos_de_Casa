@@ -8,16 +8,16 @@ let mostrarTodo = false;
 let nomenclaturasDeshabilitadasSet = new Set();
 let departamentosDeshabilitadosSet = new Set();
 let cajonesDeshabilitadosSet = new Set();
+let nomenclaturaEditarActual = ""; // Variable de respaldo para la nomenclatura en edición
 
 async function cargarResidentesDesdeBD() {
     try {
-        // Cargar estados deshabilitados (tanto departamentos como cajones)
         try {
             let configResp = await fetch('../API/api_configuraciones.php');
             let configRes = await configResp.json();
             nomenclaturasDeshabilitadasSet.clear();
             departamentosDeshabilitadosSet.clear();
-            cajonesDeshabilitadosSet.clear(); // Limpiar set de cajones
+            cajonesDeshabilitadosSet.clear();
             
             if (configRes.status === 'success') {
                 if (configRes.departamentos) {
@@ -32,7 +32,6 @@ async function cargarResidentesDesdeBD() {
                 if (configRes.cajones) {
                     configRes.cajones.forEach(c => {
                         if (c.estado === 'Deshabilitado') {
-                            // Guardar nombre y número normalizado del cajón (ej: "2", "cajón 2", "cajon 2")
                             let nombreC = String(c.nombre_cajon).trim().toLowerCase();
                             cajonesDeshabilitadosSet.add(nombreC);
                             cajonesDeshabilitadosSet.add(nombreC.replace('cajón ', '').replace('cajon ', '').replace('cajón', '').replace('cajon', ''));
@@ -67,14 +66,12 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     setTimeout(() => { toast.remove(); }, 8000);
 }
 
-// PANEL Y CONTADOR DE NOTIFICACIONES ACTIVAS
 function actualizarBadgeSidebarYNotificaciones() {
     let badgeSidebar = document.getElementById('sidebarBadgeAlertas');
     let badgeHeader = document.getElementById('headerBadgeNotif');
     let listaContenido = document.getElementById('listaNotificacionesContenido');
 
     let pendientes = residentesData.filter(r => r.nombre && r.nombre.trim() !== '' && (r.status === 'Por vencer' || r.status === 'Vence pronto' || r.status === 'Vencido'));
-
     let total = pendientes.length;
 
     if (badgeSidebar) {
@@ -274,13 +271,11 @@ function renderTabla(datos) {
         `;
     });
 
-    // Actualizar métricas generales
     document.getElementById('statTotal').innerText = totalRegistros;
     let vigentes = residentesAsignados.filter(r => r.status === 'Vigente').length;
     document.getElementById('statVigentes').innerText = vigentes;
     document.getElementById('statPorVencer').innerText = totalRegistros - vigentes;
 
-    // Actualizar controles visuales de la barra de paginación
     actualizarControlesPaginacion(totalRegistros, totalPaginas, inicio, fin);
 }
 
@@ -435,16 +430,11 @@ function verDetalles(index) {
 function cerrarModalDetalles() { document.getElementById('modalDetallesOverlay').style.display = 'none'; }
 
 function estaEspacioDesocupado(item) {
-    let dep = String(item.dep || '').trim(), nom = String(item.nomenclatura || '').trim().toUpperCase();
-    
-    // Si el departamento está deshabilitado en la base de datos, lo ignoramos por completo
     if (item.estado_dep === 'Deshabilitado' || item.estado === 'Deshabilitado') {
         return false;
     }
-
     return !(item.nombre && item.nombre.trim() !== '');
 }
-
 
 function prepararCatalogosModal() {
     let nivelesLibres = residentesData.filter(r => estaEspacioDesocupado(r)).map(r => r.nivel).filter(Boolean);
@@ -465,20 +455,17 @@ function prepararCatalogosModal() {
            let formato3 = "cajón" + i;
            let formato4 = i.toString();
 
-           // Verificamos si está ocupado
            let estaOcupado = cajonesOcupados.includes(formato1) || 
                              cajonesOcupados.includes(formato2) || 
                              cajonesOcupados.includes(formato3) || 
                              cajonesOcupados.includes(formato4);
 
-           // Verificamos si está deshabilitado en el Set con múltiples variaciones de texto
            let estaDeshabilitado = cajonesDeshabilitadosSet.has(numStr) || 
                                    cajonesDeshabilitadosSet.has(formato1) || 
                                    cajonesDeshabilitadosSet.has(formato2) ||
                                    cajonesDeshabilitadosSet.has("cajón " + i) ||
                                    cajonesDeshabilitadosSet.has("cajon " + i);
 
-           // Si NO está ocupado y NO está deshabilitado, lo agregamos a las opciones
            if (!estaOcupado && !estaDeshabilitado) {
                selCajon.innerHTML += `<option value="Cajón ${i}">Cajón ${i}</option>`;
            }
@@ -541,7 +528,8 @@ function actualizarNomenclaturaModal() {
     let dep = document.getElementById('inpDepModal').value || '101';
     let rec = document.getElementById('inpRecamaraModal').value || 'A';
     let cama = document.getElementById('inpCamaModal').value || '1';
-    document.getElementById('inpNomenclaturaModal').value = `${dep}-${rec}${cama}`;
+    let nomField = document.getElementById('inpNomenclaturaModal');
+    if (nomField) nomField.value = `${dep}-${rec}${cama}`;
 }
 
 function recalcularFechasContrato() {
@@ -557,6 +545,7 @@ function recalcularFechasContrato() {
 }
 
 function abrirModalCrear() {
+    nomenclaturaEditarActual = "";
     document.getElementById('modalTitulo').innerText = 'Nuevo Registro';
     document.getElementById('editIndex').value = '-1';
     document.getElementById('btnGuardarModal').innerText = 'Guardar Residente';
@@ -593,6 +582,11 @@ function abrirModalCrear() {
 
 function editarResidente(index) {
     let res = residentesFiltradosMemoria[index];
+    
+    // Guardamos la nomenclatura actual para asegurarnos de que nunca viaje vacía
+    nomenclaturaEditarActual = res.nomenclatura || "";
+    let nomField = document.getElementById('inpNomenclaturaModal');
+    if (nomField) nomField.value = nomenclaturaEditarActual;
     
     document.getElementById('modalTitulo').innerText = `Editar Expediente: ${res.nombre}`;
     document.getElementById('editIndex').value = index;
@@ -706,17 +700,26 @@ async function guardarResidente() {
     let apellidos = document.getElementById('inpApellidos').value.trim();
     if (!nombre || !apellidos) { mostrarNotificacion('Por favor completa el nombre y apellidos.', 'error'); return; }
 
+    let inpNomEl = document.getElementById('inpNomenclaturaModal');
+    let nomenclaturaFinal = (inpNomEl && inpNomEl.value) ? inpNomEl.value.trim() : nomenclaturaEditarActual;
+
+    if (!nomenclaturaFinal) {
+        mostrarNotificacion('Error: La nomenclatura no puede estar vacía.', 'error');
+        return;
+    }
+
     let payload = {
+        es_edicion: esEdicion,
         nombre_completo: `${nombre} ${apellidos}`,
         genero: document.getElementById('inpGenero').value,
         telefono: document.getElementById('inpTelefono').value.trim(),
         correo: document.getElementById('inpCorreo').value.trim(),
         tiene_carro: document.getElementById('inpTieneCarro').value === 'SI' ? 'Si' : 'No',
         desea_registrar_auto: document.getElementById('inpDeseaRegistrarAuto').value,
-        dep: document.getElementById('inpDepModal').value || '101',
-        recamara: (document.getElementById('inpRecamaraModal').value || 'A') + (document.getElementById('inpCamaModal').value || '1'),
+        dep: document.getElementById('inpDepModal').value || nomenclaturaFinal.split('-')[0] || '101',
+        recamara: document.getElementById('inpRecamaraModal').value ? (document.getElementById('inpRecamaraModal').value + (document.getElementById('inpCamaModal').value || '1')) : 'A1',
         cama: document.getElementById('inpCamaModal').value || '1',
-        nomenclatura: document.getElementById('inpNomenclaturaModal').value,
+        nomenclatura: nomenclaturaFinal,
         tipologia: document.getElementById('inpTipologiaModal').value || 'twin',
         renta: parseFloat(document.getElementById('inpRenta').value) || 0,
         fecha_move_in: document.getElementById('inpMoveInModal').value,
@@ -996,13 +999,12 @@ window.onload = function() {
     let urlParams = new URLSearchParams(window.location.search);
     let searchTerm = urlParams.get('search');
     if (searchTerm) {
-    let searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.value = searchTerm;
-        setTimeout(() => aplicarFiltros(), 300);
+        let searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = searchTerm;
+            setTimeout(() => aplicarFiltros(), 300);
+        }
     }
-}
-    // Quitar la clase de preload del HTML
     document.documentElement.classList.remove('dark-mode-preload');
 
     if (localStorage.getItem('theme') === 'dark') {
@@ -1012,3 +1014,63 @@ window.onload = function() {
     }
     cargarResidentesDesdeBD();
 };
+
+function abrirModalDevMasivo(tipoPorDefecto = 'residentes') {
+    let sel = document.getElementById('selectTipoDev');
+    if (sel) sel.value = tipoPorDefecto;
+    document.getElementById('modalDevMasivoOverlay').style.display = 'flex';
+}
+
+function cerrarModalDevMasivo() {
+    document.getElementById('modalDevMasivoOverlay').style.display = 'none';
+    document.getElementById('formCargaMasivaDev').reset();
+}
+
+function descargarPlantillaDevSelected() {
+    let tipo = document.getElementById('selectTipoDev').value;
+    window.location.href = `../API/api_carga_masiva.php?tipo=${tipo}`;
+}
+
+async function procesarCargaMasivaDev(e) {
+    e.preventDefault();
+    
+    let tipo = document.getElementById('selectTipoDev').value;
+    let fileInput = document.getElementById('inpFileCSVDev');
+    let chkConfirm = document.getElementById('chkConfirmacionDev');
+
+    if (!fileInput.files[0] || !chkConfirm.checked) {
+        mostrarNotificacion('Debes seleccionar un archivo y confirmar el aviso de riesgo.', 'error');
+        return;
+    }
+
+    let btn = document.getElementById('btnProcesarDev');
+    btn.disabled = true;
+    btn.innerText = '🔄 Procesando datos masivos...';
+
+    let formData = new FormData();
+    formData.append('archivo_csv', fileInput.files[0]);
+    formData.append('tipo', tipo);
+
+    try {
+        let res = await fetch('../API/api_carga_masiva.php', {
+            method: 'POST',
+            body: formData
+        });
+        let json = await res.json();
+
+        if (json.status === 'success') {
+            mostrarNotificacion(json.message, 'success');
+            cerrarModalDevMasivo();
+            if (typeof cargarResidentesDesdeBD === 'function') cargarResidentesDesdeBD();
+            if (typeof cargarContratosDesdeBD === 'function') cargarContratosDesdeBD();
+        } else {
+            mostrarNotificacion('Error: ' + json.message, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        mostrarNotificacion('Ocurrió un error al procesar la carga masiva.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerText = '⚡ Ejecutar Reemplazo Masivo';
+    }
+}

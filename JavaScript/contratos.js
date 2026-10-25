@@ -834,3 +834,63 @@ window.onload = function() {
         }
     });
 };
+
+function abrirModalDevMasivo(tipoPorDefecto = 'residentes') {
+    let sel = document.getElementById('selectTipoDev');
+    if (sel) sel.value = tipoPorDefecto;
+    document.getElementById('modalDevMasivoOverlay').style.display = 'flex';
+}
+
+function cerrarModalDevMasivo() {
+    document.getElementById('modalDevMasivoOverlay').style.display = 'none';
+    document.getElementById('formCargaMasivaDev').reset();
+}
+
+function descargarPlantillaDevSelected() {
+    let tipo = document.getElementById('selectTipoDev').value;
+    window.location.href = `../API/api_carga_masiva.php?tipo=${tipo}`;
+}
+
+async function procesarCargaMasivaDev(e) {
+    e.preventDefault();
+    
+    let tipo = document.getElementById('selectTipoDev').value;
+    let fileInput = document.getElementById('inpFileCSVDev');
+    let chkConfirm = document.getElementById('chkConfirmacionDev');
+
+    if (!fileInput.files[0] || !chkConfirm.checked) {
+        mostrarNotificacion('Debes seleccionar un archivo y confirmar el aviso de riesgo.', 'error');
+        return;
+    }
+
+    let btn = document.getElementById('btnProcesarDev');
+    btn.disabled = true;
+    btn.innerText = '🔄 Procesando datos masivos...';
+
+    let formData = new FormData();
+    formData.append('archivo_csv', fileInput.files[0]);
+    formData.append('tipo', tipo);
+
+    try {
+        let res = await fetch('../API/api_carga_masiva.php', {
+            method: 'POST',
+            body: formData
+        });
+        let json = await res.json();
+
+        if (json.status === 'success') {
+            mostrarNotificacion(json.message, 'success');
+            cerrarModalDevMasivo();
+            if (typeof cargarResidentesDesdeBD === 'function') cargarResidentesDesdeBD();
+            if (typeof cargarContratosDesdeBD === 'function') cargarContratosDesdeBD();
+        } else {
+            mostrarNotificacion('Error: ' + json.message, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        mostrarNotificacion('Ocurrió un error al procesar la carga masiva.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerText = '⚡ Ejecutar Reemplazo Masivo';
+    }
+}

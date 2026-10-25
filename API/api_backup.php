@@ -6,11 +6,12 @@ $conn = new mysqli("localhost", "root", "", "estado_de_casa_utower");
 if ($conn->connect_error) { exit("Error de conexión"); }
 $conn->set_charset("utf8mb4");
 
+$output = "-- Respaldo U-Tower Database\n-- Fecha: " . date('Y-m-d H:i:s') . "\n\n";
+$output .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+
 $tables = [];
 $result = $conn->query("SHOW TABLES");
 while ($row = $result->fetch_row()) { $tables[] = $row[0]; }
-
-$output = "-- Respaldo U-Tower Database\n-- Fecha: " . date('Y-m-d H:i:s') . "\n\n";
 
 foreach ($tables as $table) {
     $output .= "DROP TABLE IF EXISTS `$table`;\n";
@@ -30,6 +31,7 @@ foreach ($tables as $table) {
     $output .= "\n\n";
 }
 
+$output .= "SET FOREIGN_KEY_CHECKS = 1;\n";
 echo $output;
 $conn->close();
 ?>
