@@ -1,19 +1,11 @@
 <?php
+require_once 'config.php';
+require_once 'auth_middleware.php';
+requerir_permiso('borrar_residentes');
+
 header('Content-Type: application/json; charset=utf-8');
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "estado_de_casa_utower";
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    echo json_encode(["status" => "error", "message" => "Error de conexión: " . $conn->connect_error]);
-    exit;
-}
-
-$conn->set_charset("utf8mb4");
-
+$conn = conectarDB();
 $inputData = file_get_contents('php://input');
 $data = json_decode($inputData, true);
 
@@ -33,6 +25,7 @@ try {
     $stmtDel3 = $conn->prepare("DELETE FROM estacionamiento WHERE nomenclatura = ?");
 
     $fechaHoy = date('Y-m-d');
+    $nombresBorrados = []; // Arreglo para la auditoría
 
     foreach ($data['registros'] as $item) {
         $nom = trim($item['nomenclatura']);
@@ -46,6 +39,7 @@ try {
 
             $nombreRes = $res['nombre'] ?? 'Desconocido';
             $moveInDate = $res['move_in'] ?? $fechaHoy;
+            $nombresBorrados[] = $nombreRes;
 
             // B. Guardar en bitácora move_out
             $stmtInsertHist->bind_param("sssss", $nom, $nombreRes, $moveInDate, $fechaHoy, $motivo);
@@ -57,6 +51,17 @@ try {
             $stmtDel3->bind_param("s", $nom); $stmtDel3->execute();
         }
     }
+
+    // --- REGISTRO DE AUDITORÍA (CORREGIDO) ---
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $accionLog = 'Move-Out';
+    $detallesLog = "Se registró la salida de: " . implode(', ', $nombresBorrados);
+    $id_user = $_SESSION['id_usuario'];
+    
+    $stmtLog = $conn->prepare("INSERT INTO logs_sistema (id_usuario, accion, detalles, ip_usuario) VALUES (?, ?, ?, ?)");
+    $stmtLog->bind_param("isss", $id_user, $accionLog, $detallesLog, $ip);
+    $stmtLog->execute();
+    // -----------------------------
 
     $conn->commit();
     echo json_encode(["status" => "success", "message" => "Salida registrada con éxito."]);

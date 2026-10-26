@@ -1,17 +1,12 @@
 <?php
+require_once 'auth_middleware.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requerir_permiso('editar_admin_parking');
+}
 header('Content-Type: application/json; charset=utf-8');
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "estado_de_casa_utower";
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Conexión fallida: " . $conn->connect_error]));
-}
-
-$conn->set_charset("utf8mb4");
+require_once 'config.php';
+$conn = conectarDB();
 
 // PROCESAR ACTUALIZACIÓN DE CAJÓN ADMINISTRATIVO
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -26,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $color       = $data['color_auto'];
         $placas      = $data['placas'];
 
-        // Verificamos si ya existe el registro en la tabla estacionamiento
+        // Verificamos si ya existe el registro
         $chk = $conn->prepare("SELECT cajon FROM estacionamiento WHERE cajon = ?");
         $chk->bind_param("s", $cajon);
         $chk->execute();
@@ -36,7 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("UPDATE estacionamiento SET numero_tag = ?, nombre_completo = ?, modelo_auto = ?, color_auto = ?, placas = ? WHERE cajon = ?");
             $stmt->bind_param("ssssss", $tag, $nombre, $modelo, $color, $placas, $cajon);
         } else {
-            $stmt = $conn->prepare("INSERT INTO estacionamiento (cajon, numero_tag, nombre_completo, nomenclatura, modelo_auto, color_auto, placas) VALUES (?, ?, ?, '---', ?, ?, ?)");
+            // IMPORTANTE: Aquí usamos NULL en lugar de '---'
+            $stmt = $conn->prepare("INSERT INTO estacionamiento (cajon, numero_tag, nombre_completo, nomenclatura, modelo_auto, color_auto, placas) VALUES (?, ?, ?, NULL, ?, ?, ?)");
             $stmt->bind_param("ssssss", $cajon, $tag, $nombre, $modelo, $color, $placas);
         }
 
@@ -50,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+
 // OBTENER TODOS LOS CAJONES
 $sql = "SELECT 
             c.nombre_cajon AS cajon,
@@ -62,11 +59,26 @@ $sql = "SELECT
             CASE WHEN e.cajon IS NOT NULL THEN 'Ocupado' ELSE 'Disponible' END AS estado
         FROM cajones_estacionamiento c
         LEFT JOIN estacionamiento e ON c.nombre_cajon = e.cajon
+        
+        UNION ALL
+        
+        SELECT 
+            e.cajon AS cajon,
+            e.numero_tag,
+            e.nombre_completo,
+            e.nomenclatura,
+            e.modelo_auto,
+            e.color_auto,
+            e.placas,
+            'Ocupado' AS estado
+        FROM estacionamiento e
+        LEFT JOIN cajones_estacionamiento c ON e.cajon = c.nombre_cajon
+        WHERE c.nombre_cajon IS NULL
+        
         ORDER BY 
-            CASE WHEN c.nombre_cajon REGEXP '^[0-9]+$' THEN 0 ELSE 1 END,
-            CAST(c.nombre_cajon AS UNSIGNED) ASC, 
-            c.nombre_cajon ASC";
-
+            CASE WHEN cajon LIKE '%Cajón%' THEN 0 ELSE 1 END,
+            CAST(REGEXP_REPLACE(cajon, '[^0-9]', '') AS UNSIGNED) ASC,
+            cajon ASC";
 $result = $conn->query($sql);
 $data = [];
 

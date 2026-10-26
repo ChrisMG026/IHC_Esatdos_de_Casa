@@ -1,16 +1,8 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "estado_de_casa_utower";
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die(json_encode(["error" => "Conexión fallida: " . $conn->connect_error]));
-}
-
+require_once 'config.php';
+$conn = conectarDB();
 $conn->set_charset("utf8mb4");
 
 // CONSULTA OPTIMIZADA: Se incluye d.estado AS estado_dep para filtrar los deshabilitados

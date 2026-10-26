@@ -1,17 +1,12 @@
 <?php
+
+require_once 'auth_middleware.php';
+requerir_permiso('editar_claves');
+
 header('Content-Type: application/json; charset=utf-8');
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "estado_de_casa_utower";
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    echo json_encode(["status" => "error", "message" => "Conexión fallida: " . $conn->connect_error]);
-    exit;
-}
-$conn->set_charset("utf8mb4");
+require_once 'config.php';
+$conn = conectarDB();
 
 $method = $_SERVER['REQUEST_METHOD'];
 

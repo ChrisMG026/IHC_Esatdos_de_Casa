@@ -143,7 +143,13 @@
                 <li><a href="Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
                 <li><a href="Reportes.html" class="nav-item">📈 Reportes</a></li>
                 <li><a href="Configuraciones.html" class="nav-item active">⚙️ Configuraciones</a></li>
+                <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">🛡️ Administración</a></li>
             </ul>
+                <li style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item" style="color: #ef4444; display: flex; align-items: center; gap: 10px;">
+                    🚪 Cerrar Sesión
+                </a>
+            </li>
         </div>
     </aside>
 
@@ -169,7 +175,7 @@
                 <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
                     <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
                 </button>
-                <span>👤 Admin ˅</span>
+                <span id="nombreUsuarioHeader">👤 Cargando...</span>
             </div>
         </header>
         <div class="content">
@@ -299,6 +305,7 @@
     <!-- TOAST -->
     <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-    <script src="../JavaScript/configuraciones.js?v=10.2"></script>
+    <script src="../JavaScript/configuraciones.js?v=10.5"></script>
+    <script src="../JavaScript/auth_check.js"></script>
 </body>
 </html>

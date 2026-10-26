@@ -137,6 +137,9 @@ function renderTablaLlaves() {
     let tbody = document.getElementById('tbodyLlaves');
     if (!tbody) return;
 
+    // 1. Evaluamos el permiso UNA VEZ para toda la tabla
+    let puedeEditarClaves = !document.body.classList.contains('rol-sin-editar-claves');
+
     tbody.innerHTML = '';
 
     let totalItems = llavesFiltradas.length;
@@ -151,23 +154,33 @@ function renderTablaLlaves() {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-secondary); padding: 20px;">No se encontraron registros.</td></tr>`;
     } else {
         datosPagina.forEach(item => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>${item.numero_departamento}</strong></td>
-                    <td>${item.nivel}</td>
-                    <td>${item.tipologia}</td>
-                    <td>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <input type="password" id="inpLlave_${item.numero_departamento}" value="${item.clave_maestra || ''}" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')" disabled style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); font-weight:700; width: 100px; opacity: 0.7;">
-                            
-                            <button type="button" id="btnVer_${item.numero_departamento}" onclick="toggleVerClave('${item.numero_departamento}')" class="btn-table" title="Ver / Ocultar Clave" style="padding: 6px 10px; cursor: pointer;">Mostrar</button>
+            
+            // 2. AQUÍ ADENTRO definimos los botones, ya que 'item' existe
+            let botonEditarHTML = puedeEditarClaves 
+                ? `<button id="btnEdit_${item.numero_departamento}" onclick="solicitarPermisoCambio('${item.numero_departamento}')" style="background:#f59e0b; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Editar</button>` 
+                : '';
 
-                            <button id="btnEdit_${item.numero_departamento}" onclick="solicitarPermisoCambio('${item.numero_departamento}')" style="background:#f59e0b; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Editar</button>
-                            
-                            <button id="btnSave_${item.numero_departamento}" onclick="guardarClave('${item.numero_departamento}')" style="display:none; background:#10b981; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Guardar</button>
-                        </div>
-                    </td>
-                </tr>
+            let botonGuardarHTML = puedeEditarClaves
+                ? `<button id="btnSave_${item.numero_departamento}" onclick="guardarClave('${item.numero_departamento}')" style="display:none; background:#10b981; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Guardar</button>`
+                : '';
+
+            // 3. Pintamos la fila con los botones correctos
+            tbody.innerHTML += `
+            <tr>
+                <td><strong>${item.numero_departamento}</strong></td>
+                <td>${item.nivel}</td>
+                <td>${item.tipologia}</td>
+                <td>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="password" id="inpLlave_${item.numero_departamento}" value="${item.clave_maestra || ''}" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')" disabled style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); font-weight:700; width: 100px; opacity: 0.7;">
+                        
+                        <button type="button" id="btnVer_${item.numero_departamento}" onclick="toggleVerClave('${item.numero_departamento}')" class="btn-table" title="Ver / Ocultar Clave" style="padding: 6px 10px; cursor: pointer;">Mostrar</button>
+
+                        ${botonEditarHTML}
+                        ${botonGuardarHTML}
+                    </div>
+                </td>
+            </tr>
             `;
         });
     }

@@ -1,10 +1,14 @@
 <?php
+
+require_once 'auth_middleware.php';
+requerir_permiso('backup_sql');
+
+require_once 'config.php';
+$conn = conectarDB();
+
 header('Content-Type: application/sql; charset=utf-8');
 header('Content-Disposition: attachment; filename="respaldo_utower_' . date('Y-m-d_H-i-s') . '.sql"');
 
-$conn = new mysqli("localhost", "root", "", "estado_de_casa_utower");
-if ($conn->connect_error) { exit("Error de conexión"); }
-$conn->set_charset("utf8mb4");
 
 $output = "-- Respaldo U-Tower Database\n-- Fecha: " . date('Y-m-d H:i:s') . "\n\n";
 $output .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";

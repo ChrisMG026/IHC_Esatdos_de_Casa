@@ -8,7 +8,7 @@ let mostrarTodo = false;
 let nomenclaturasDeshabilitadasSet = new Set();
 let departamentosDeshabilitadosSet = new Set();
 let cajonesDeshabilitadosSet = new Set();
-let nomenclaturaEditarActual = ""; // Variable de respaldo para la nomenclatura en edición
+let nomenclaturaEditarActual = "";
 
 async function cargarResidentesDesdeBD() {
     try {
@@ -55,6 +55,7 @@ async function cargarResidentesDesdeBD() {
         mostrarNotificacion('Error crítico: Falló la conexión con el servidor al cargar datos.', 'error');
     }
 }
+
 function mostrarNotificacion(mensaje, tipo = 'success') {
     let container = document.getElementById('toastContainer');
     if (!container) return;
@@ -237,6 +238,9 @@ function renderTabla(datos) {
     let tbody = document.getElementById('tablaBody');
     tbody.innerHTML = '';
 
+    let permisosBody = document.body.getAttribute('data-permisos') || '';
+    let puedeEditarResidentes = permisosBody.includes('editar_residentes');
+
     datosPaginados.forEach((item, idxRelativo) => {
         let indexOriginal = residentesAsignados.indexOf(item);
         let badgeStatusClass = 'status-green', bgDateClass = 'bg-green';
@@ -262,8 +266,10 @@ function renderTabla(datos) {
                 <td><span class="badge-status ${badgeStatusClass}">${item.status}</span></td>
                 <td style="text-align: center;">
                     <div style="display: flex; gap: 4px; justify-content: center;">
-                        <button class="btn-table btn-details" onclick="verDetalles(${indexOriginal})" title="Ver detalles">👁️</button>
+                         <button class="btn-table btn-details" onclick="verDetalles(${indexOriginal})" title="Ver detalles">👁️</button> 
+                            ${puedeEditarResidentes ? `
                         <button class="btn-table" onclick="editarResidente(${indexOriginal})" title="Editar">✏️</button>
+                    ` : ''}
                         <button class="btn-table" onclick="generarCredencialResidente(${indexOriginal})" title="Imprimir Credencial / Expediente">🪪</button>
                     </div>
                 </td>
@@ -442,32 +448,26 @@ function prepararCatalogosModal() {
     selNivel.innerHTML = `<option value="">-- Seleccionar --</option>`;
     ordenarNiveles([...new Set(nivelesLibres)]).forEach(n => { selNivel.innerHTML += `<option value="${n}">${n}</option>`; });
 
-   let cajonesOcupados = residentesData.filter(r => r.nombre && r.nombre.trim() !== '').map(r => r.cajon).filter(Boolean).map(c => String(c).trim().toLowerCase());
+  let cajonesOcupados = residentesData
+       .filter(r => r.nombre && r.nombre.trim() !== '')
+       .map(r => r.cajon)
+       .filter(Boolean)
+       .map(c => String(c).trim().toLowerCase());
+       
    let selCajon = document.getElementById('inpCajonModal');
 
    if (selCajon) {
        selCajon.innerHTML = `<option value="">-- Seleccionar Cajón --</option>`;
        
        for (let i = 1; i <= 40; i++) {
-           let numStr = String(i);
-           let formato1 = "cajón " + i;
-           let formato2 = "cajon " + i;
-           let formato3 = "cajón" + i;
-           let formato4 = i.toString();
+           let nombreEstandar = "Cajón " + i; 
+           let nombreMinus = nombreEstandar.toLowerCase();
 
-           let estaOcupado = cajonesOcupados.includes(formato1) || 
-                             cajonesOcupados.includes(formato2) || 
-                             cajonesOcupados.includes(formato3) || 
-                             cajonesOcupados.includes(formato4);
-
-           let estaDeshabilitado = cajonesDeshabilitadosSet.has(numStr) || 
-                                   cajonesDeshabilitadosSet.has(formato1) || 
-                                   cajonesDeshabilitadosSet.has(formato2) ||
-                                   cajonesDeshabilitadosSet.has("cajón " + i) ||
-                                   cajonesDeshabilitadosSet.has("cajon " + i);
+           let estaOcupado = cajonesOcupados.includes(nombreMinus);
+           let estaDeshabilitado = cajonesDeshabilitadosSet.has(nombreMinus);
 
            if (!estaOcupado && !estaDeshabilitado) {
-               selCajon.innerHTML += `<option value="Cajón ${i}">Cajón ${i}</option>`;
+               selCajon.innerHTML += `<option value="${nombreEstandar}">Cajón ${i}</option>`;
            }
        }
    }
@@ -618,6 +618,31 @@ function editarResidente(index) {
     document.getElementById('inpCorreo').value = res.correo || '';
     document.getElementById('inpRenta').value = res.renta || '';
 
+    // Poblar el select de cajones en modo edición
+    let selCajon = document.getElementById('inpCajonModal');
+    if (selCajon) {
+        selCajon.innerHTML = `<option value="">-- Sin Cajón --</option>`;
+        
+        let cajonesOcupados = residentesData
+            .filter(r => r.nombre && r.nombre.trim() !== '' && r.nomenclatura !== res.nomenclatura)
+            .map(r => r.cajon)
+            .filter(Boolean)
+            .map(c => String(c).trim().toLowerCase());
+
+        for (let i = 1; i <= 40; i++) {
+            let nombreEstandar = "Cajón " + i;
+            let nombreMinus = nombreEstandar.toLowerCase();
+
+            let estaOcupado = cajonesOcupados.includes(nombreMinus);
+            let estaDeshabilitado = cajonesDeshabilitadosSet.has(nombreMinus);
+            
+            if (!estaOcupado && !estaDeshabilitado) {
+                let selected = (String(res.cajon).toLowerCase() === nombreMinus) ? 'selected' : '';
+                selCajon.innerHTML += `<option value="${nombreEstandar}" ${selected}>Cajón ${i}</option>`;
+            }
+        }
+    }
+    
     window.residenteEnEdicion = res;
     cambiarPestana('tab-personales', document.querySelectorAll('.tab-item')[0]);
     document.getElementById('modalOverlay').style.display = 'flex';
@@ -661,8 +686,43 @@ let ultimoResidenteRegistrado = null;
 async function guardarResidente() {
     let indexEdit = document.getElementById('editIndex').value;
     let esEdicion = indexEdit !== '-1';
+    
     let cambiaContrato = esEdicion ? document.getElementById('inpCambiaContrato').value === 'SI' : true;
     let cambiaUnidad = esEdicion && cambiaContrato && document.getElementById('inpCambiaUnidad').value === 'SI';
+
+    // --- VALIDACIONES FRONTEND ---
+    if (!esEdicion || cambiaUnidad) {
+        let depSeleccionado = document.getElementById('inpDepModal').value;
+        let nomSeleccionada = document.getElementById('inpNomenclaturaModal').value;
+        
+        if (!depSeleccionado || !nomSeleccionada) {
+            mostrarNotificacion('Debes asignar un departamento en la pestaña 2. Contrato.', 'error');
+            cambiarPestana('tab-contrato', document.querySelectorAll('.tab-item')[1]); 
+            return;
+        }
+
+        let fIn = document.getElementById('inpMoveInModal').value;
+        let fOut = document.getElementById('inpMoveOutModal').value;
+        
+        if (!fIn || !fOut) {
+            mostrarNotificacion('Las fechas de Move-In y Move-Out son obligatorias.', 'error');
+            return;
+        }
+
+        if (new Date(fOut) <= new Date(fIn)) {
+            mostrarNotificacion('La fecha de Move-Out debe ser posterior a la fecha de Move-In.', 'error');
+            return;
+        }
+    }
+
+    let tel = document.getElementById('inpTelefono').value.trim();
+    let telLimpio = tel.replace(/[^0-9]/g, '');
+    if (telLimpio.length < 10) {
+        mostrarNotificacion('El número de contacto debe tener al menos 10 dígitos numéricos.', 'error');
+        document.getElementById('inpTelefono').focus();
+        return;
+    }
+
     let motivoCambio = document.getElementById('inpMotivoCambioUnidad').value.trim();
 
     if (esEdicion && cambiaUnidad && !motivoCambio) {
@@ -708,6 +768,8 @@ async function guardarResidente() {
         return;
     }
 
+    // SI ES EDICIÓN, LEEMOS LOS DATOS DEL CONTRATO DESDE LOS INPUTS OCULTOS
+    // (En editarResidente() los llenamos con los valores originales, así no se pierden)
     let payload = {
         es_edicion: esEdicion,
         nombre_completo: `${nombre} ${apellidos}`,
@@ -716,6 +778,8 @@ async function guardarResidente() {
         correo: document.getElementById('inpCorreo').value.trim(),
         tiene_carro: document.getElementById('inpTieneCarro').value === 'SI' ? 'Si' : 'No',
         desea_registrar_auto: document.getElementById('inpDeseaRegistrarAuto').value,
+        
+        // Datos del contrato
         dep: document.getElementById('inpDepModal').value || nomenclaturaFinal.split('-')[0] || '101',
         recamara: document.getElementById('inpRecamaraModal').value ? (document.getElementById('inpRecamaraModal').value + (document.getElementById('inpCamaModal').value || '1')) : 'A1',
         cama: document.getElementById('inpCamaModal').value || '1',
@@ -730,6 +794,19 @@ async function guardarResidente() {
         numero_tag: document.getElementById('inpNumeroTag')?.value.trim() || '',
         placas: document.getElementById('inpPlacasModal')?.value.trim() || ''
     };
+
+    // Si estamos editando y el departamento o fechas están vacíos (porque la pestaña está oculta)
+    // buscamos los datos originales de la fila para inyectarlos en el payload.
+    if (esEdicion) {
+        let resOriginal = window.residenteEnEdicion;
+        if (!payload.dep || payload.dep === '') payload.dep = resOriginal.dep;
+        if (!payload.recamara || payload.recamara === '') payload.recamara = resOriginal.recamara;
+        if (!payload.cama || payload.cama === '') payload.cama = resOriginal.cama;
+        if (!payload.tipologia || payload.tipologia === '') payload.tipologia = resOriginal.tipologia;
+        if (!payload.renta || payload.renta <= 0) payload.renta = parseFloat(resOriginal.renta);
+        if (!payload.fecha_move_in || payload.fecha_move_in === '') payload.fecha_move_in = resOriginal.fecha_move_in;
+        if (!payload.fecha_move_out || payload.fecha_move_out === '') payload.fecha_move_out = resOriginal.fecha_move_out;
+    }
 
     try {
         let response = await fetch('../API/api_guardar_residente.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -747,6 +824,7 @@ async function guardarResidente() {
         } else { mostrarNotificacion('Error en la base de datos: ' + resultado.message, 'error'); }
     } catch (error) { mostrarNotificacion('Error crítico: Falló la conexión con el servidor.', 'error'); }
 }
+
 
 function abrirModalOpcionesImpresion(res) {
     document.getElementById('residenteImpresionNombre').innerText = res.nombre_completo;
@@ -988,11 +1066,15 @@ function cambiarPestana(idContenido, el) {
 function toggleSelectAll(master) { document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = master.checked); }
 
 function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    let esOscuro = document.body.classList.contains('dark-mode');
+    let body = document.body;
+    body.classList.toggle('dark-mode');
+    let esOscuro = body.classList.contains('dark-mode');
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
-    document.getElementById('themeIcon').innerText = esOscuro ? '☀️' : '🌙';
-    document.getElementById('themeText').innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
+    
+    let icon = document.getElementById('themeIcon');
+    let text = document.getElementById('themeText');
+    if (icon) icon.innerText = esOscuro ? '☀️' : '🌙';
+    if (text) text.innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
 window.onload = function() {

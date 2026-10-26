@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Módulo de Reportes</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../CSS/styles.css?v=3.6">
+    <link rel="stylesheet" href="../CSS/styles.css?v=3.7">
     <!-- Librería SheetJS para Exportación a Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
@@ -63,6 +63,21 @@
         .report-tab-content.active {
             display: block;
         }
+
+        html.dark-mode-preload .table-card {
+            background-color: #1e293b !important; /* Color oscuro de tus tarjetas */
+            border-color: #334155 !important;
+        }
+        html.dark-mode-preload .table-card table th {
+            background-color: #0f172a !important;
+            color: #94a3b8 !important;
+        }
+        html.dark-mode-preload .table-card table td {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
     </style>
 </head>
 <body>
@@ -81,7 +96,13 @@
                 <li><a href="Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
                 <li><a href="Reportes.html" class="nav-item active">📈 Reportes</a></li>
                 <li><a href="Configuraciones.html" class="nav-item">⚙️ Configuraciones</a></li>
+                <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">🛡️ Administración</a></li>  
             </ul>
+            <li style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item" style="color: #ef4444; display: flex; align-items: center; gap: 10px;">
+                    🚪 Cerrar Sesión
+                </a>
+            </li>
         </div>
     </aside>
 
@@ -97,7 +118,7 @@
                 <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
                     <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
                 </button>
-                <span>👤 Admin ˅</span>
+                <span id="nombreUsuarioHeader">👤 Cargando...</span>
             </div>
         </header>
 
@@ -320,5 +341,6 @@
     <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
     <script src="../JavaScript/reportes.js?v=2.1"></script>
+    <script src="../JavaScript/auth_check.js"></script>
 </body>
 </html>

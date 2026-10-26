@@ -1,17 +1,14 @@
 <?php
+require_once 'auth_middleware.php';
+// Verificamos que tenga permiso para editar contratos (renovar, autos)
+// Hacemos la verificación solo si es una acción POST (cuando guarda).
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requerir_permiso('editar_residentes');
+}
 header('Content-Type: application/json; charset=utf-8');
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "estado_de_casa_utower";
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Conexión fallida: " . $conn->connect_error]));
-}
-
-$conn->set_charset("utf8mb4");
+require_once 'config.php';
+$conn = conectarDB();
 
 // OBTENER INFORMACIÓN DE VEHÍCULO / ESTACIONAMIENTO DE UNA NOMENCLATURA
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'obtener_auto') {

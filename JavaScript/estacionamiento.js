@@ -17,7 +17,8 @@ async function cargarEstacionamientoDesdeBD() {
 
 function esCajonAdministrativo(cajonStr) {
     let str = String(cajonStr).trim();
-    return !/^\d+$/.test(str);
+    // Si empieza con "Cajón", es de residente. Si no, es administrativo.
+    return !str.toLowerCase().startsWith('cajón');
 }
 
 function mostrarNotificacion(mensaje, tipo = 'success') {
@@ -45,6 +46,10 @@ function renderTablasEstacionamiento(datos) {
     let tbodyAdmin = document.getElementById('tablaAdminBody');
     if (!tbodyResidentes || !tbodyAdmin) return;
 
+    let permisosBody = document.body.getAttribute('data-permisos') || '';
+    let puedeEditarAdmin = permisosBody.includes('editar_admin_parking');
+
+
     tbodyResidentes.innerHTML = '';
     tbodyAdmin.innerHTML = '';
 
@@ -61,6 +66,9 @@ function renderTablasEstacionamiento(datos) {
             : `<span style="color:var(--text-secondary); font-size:0.75rem;">Sin TAG</span>`;
 
         if (esAdmin) {
+            let botonEditarAdminHTML = puedeEditarAdmin 
+            ? `<button class="btn-table" onclick='abrirModalAdmin(${JSON.stringify(item)})' title="Editar Cajón Exclusivo" style="background: rgba(147, 51, 234, 0.15); color: #c084fc; border-color: #a855f7;">✏️ Editar</button>`
+            : `<span style="color:var(--text-secondary); font-size:0.8rem;">Protegido</span>`;
             tbodyAdmin.innerHTML += `
                 <tr class="fila-admin">
                     <td><strong>${item.cajon}</strong> <span class="badge-admin">ADMINISTRACIÓN</span></td>
@@ -71,7 +79,7 @@ function renderTablasEstacionamiento(datos) {
                     <td><strong style="font-family: monospace;">${item.placas || '---'}</strong></td>
                     <td style="text-align: center;">${botonQR}</td>
                     <td style="text-align: center;">
-                        <button class="btn-table" onclick='abrirModalAdmin(${JSON.stringify(item)})' title="Editar Cajón Exclusivo" style="background: rgba(147, 51, 234, 0.15); color: #c084fc; border-color: #a855f7;">✏️ Editar</button>
+                        ${botonEditarAdminHTML}
                     </td>
                 </tr>
             `;
@@ -147,7 +155,9 @@ function cerrarModalAdmin() {
 }
 
 async function guardarCajonAdmin() {
+    // Obtenemos el nombre del cajón (que será "Cajón 2", "Administracion", etc)
     let cajon = document.getElementById('adminCajonNombre').value;
+    
     let payload = {
         action: 'actualizar_admin',
         cajon: cajon,

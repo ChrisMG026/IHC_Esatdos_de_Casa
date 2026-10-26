@@ -1,17 +1,8 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "estado_de_casa_utower";
-
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) {
-    die(json_encode(["status" => "error", "message" => "Conexión fallida: " . $conn->connect_error]));
-}
-
-$conn->set_charset("utf8mb4");
+require_once 'config.php';
+$conn = conectarDB();
 
 // 1. MÉTRICAS TOTALES (KPIs)
 $totalEspacios = $conn->query("SELECT COUNT(*) as total FROM departamentos")->fetch_assoc()['total'];

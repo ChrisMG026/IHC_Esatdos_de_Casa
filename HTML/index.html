@@ -17,6 +17,21 @@
             }
         })();
     </script>
+    <style>
+        html.dark-mode-preload .table-card {
+            background-color: #1e293b !important; /* Color oscuro de tus tarjetas */
+            border-color: #334155 !important;
+        }
+        html.dark-mode-preload .table-card table th {
+            background-color: #0f172a !important;
+            color: #94a3b8 !important;
+        }
+        html.dark-mode-preload .table-card table td {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+    </style>
 </head>
 <body>
 
@@ -39,7 +54,13 @@
                 <li><a href="Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
                 <li><a href="Reportes.html" class="nav-item">📈 Reportes</a></li>
                 <li><a href="Configuraciones.html" class="nav-item">⚙️ Configuraciones</a></li>
+                <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">🛡️ Administración</a></li>  
             </ul>
+            <li style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item" style="color: #ef4444; display: flex; align-items: center; gap: 10px;">
+                    🚪 Cerrar Sesión
+                </a>
+            </li>
         </div>
     </aside>
 
@@ -92,7 +113,7 @@
                     </div>
                 </div>
 
-                <span>👤 Admin ˅</span>
+                <span id="nombreUsuarioHeader">👤 Cargando...</span>
             </div>
             
         </header>
@@ -217,7 +238,7 @@
                     </div>
                     <div class="form-row">
                         <div class="form-col"><label>Género:</label><select id="inpGenero"><option value="Masculino">Masculino</option><option value="Femenino">Femenino</option></select></div>
-                        <div class="form-col"><label>Número de contacto:</label><input type="text" id="inpTelefono" placeholder="Ej. 81 1234 5678"></div>
+                        <div class="form-col"><label>Número de contacto:</label><input type="tel" id="inpTelefono" placeholder="Ej. 8112345678" maxlength="15" oninput="this.value = this.value.replace(/[^0-9]/g, '')"></div>
                     </div>
                     
                     <div class="form-row">
@@ -425,6 +446,7 @@
 </div>
 
     <!-- Script de Residentes -->
-    <script src="../JavaScript/script.js?v=5.3"></script>
+    <script src="../JavaScript/script.js?v=5.5"></script>
+    <script src="../JavaScript/auth_check.js"></script>
 </body>
 </html>

@@ -42,7 +42,13 @@
                 <li><a href="Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
                 <li><a href="Reportes.html" class="nav-item">📈 Reportes</a></li>
                 <li><a href="Configuraciones.html" class="nav-item">⚙️ Configuraciones</a></li>
+                <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">🛡️ Administración</a></li>  
             </ul>
+            <li style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item" style="color: #ef4444; display: flex; align-items: center; gap: 10px;">
+                    🚪 Cerrar Sesión
+                </a>
+            </li>
         </div>
     </aside>
 
@@ -93,7 +99,7 @@
                     </div>
                 </div>
 
-                <span>👤 Admin ˅</span>
+                <span id="nombreUsuarioHeader">👤 Cargando...</span>
             </div>
         </header>
 
@@ -442,5 +448,6 @@
     </div>
 </div>
     <script src="../JavaScript/contratos.js?v=3.1"></script>
+    <script src="../JavaScript/auth_check.js"></script>
 </body>
 </html>

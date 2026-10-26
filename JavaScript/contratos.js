@@ -187,6 +187,9 @@ function renderTablaContratos(datos) {
     let ingresoTotal = 0;
     let porVencerCount = 0;
 
+    let permisosBody = document.body.getAttribute('data-permisos') || '';
+    let puedeEditarContratos = permisosBody.includes('editar_residentes');
+
     // Métricas sobre el total completo de datos
     datos.forEach(item => {
         ingresoTotal += parseFloat(item.renta || 0);
@@ -242,10 +245,12 @@ function renderTablaContratos(datos) {
                 <td><span class="badge-vencimiento ${badgeClass}">${estadoTexto}</span></td>
                 <td style="text-align: center;">
                     <div class="action-buttons-group" style="justify-content: center;">
-                        <button class="btn-table" onclick="abrirModalRenovar('${item.nomenclatura}')" title="Renovar Contrato">🔄</button>
-                        <button class="btn-table" onclick="abrirModalAuto('${item.nomenclatura}')" title="Gestionar Auto">🚗</button>
-                        <button class="btn-table" onclick="generarPDFContrato('${item.nomenclatura}')" title="Imprimir PDF">📄</button>
-                        <button class="btn-table" onclick="verHistorico('${item.nomenclatura}', '${item.nombre_residente}')" title="Ver Histórico">📜</button>
+                        ${puedeEditarContratos ? `
+                    <button class="btn-table" onclick="abrirModalRenovar('${item.nomenclatura}')" title="Renovar Contrato">🔄</button>
+                    <button class="btn-table" onclick="abrirModalAuto('${item.nomenclatura}')" title="Gestionar Auto">🚗</button>
+                    ` : ''}
+                    <button class="btn-table" onclick="generarPDFContrato('${item.nomenclatura}')" title="Imprimir PDF">📄</button>
+                    <button class="btn-table" onclick="verHistorico('${item.nomenclatura}', '${item.nombre_residente}')" title="Ver Histórico">📜</button>
                     </div>
                 </td>
             </tr>
