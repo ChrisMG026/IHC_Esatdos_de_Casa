@@ -29,8 +29,8 @@ $resNiveles = $conn->query($sqlNiveles);
 $nivelesData = $resNiveles ? $resNiveles->fetch_all(MYSQLI_ASSOC) : [];
 
 // 3. DATOS DE ESTACIONAMIENTO
-$totalCajones = $conn->query("SELECT COUNT(*) as total FROM cajones_estacionamiento WHERE nombre_cajon REGEXP '^[0-9]+$'")->fetch_assoc()['total'];
-$cajonesOcupados = $conn->query("SELECT COUNT(*) as total FROM estacionamiento WHERE cajon REGEXP '^[0-9]+$'")->fetch_assoc()['total'];
+$totalCajones = $conn->query("SELECT COUNT(*) as total FROM cajones_estacionamiento WHERE nombre_cajon LIKE 'Cajón%'")->fetch_assoc()['total'];
+$cajonesOcupados = $conn->query("SELECT COUNT(*) as total FROM estacionamiento WHERE cajon LIKE 'Cajón%' AND nombre_completo IS NOT NULL AND nombre_completo != ''")->fetch_assoc()['total'];
 
 // 4. DEMOGRAFÍA: HOMBRES VS MUJERES GENERAL
 $sqlGenero = "SELECT 

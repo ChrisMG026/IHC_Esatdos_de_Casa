@@ -511,6 +511,7 @@ async function subirCSVClaves(input) {
 
     let formData = new FormData();
     formData.append('archivo_csv', file);
+    formData.append('accion', 'subir_csv_claves'); // <-- ESTO FALTABA
 
     try {
         let response = await fetch('../API/api_configuraciones.php', {

@@ -66,6 +66,56 @@ if ($method === 'GET') {
 
 // ==================== PETICIÓN POST (ACCIONES) ====================
 if ($method === 'POST') {
+    // ====================================================
+    // NUEVO: PROCESAR CARGA MASIVA DE CLAVES (CSV)
+    // ====================================================
+    if (isset($_POST['accion']) && $_POST['accion'] === 'subir_csv_claves') {
+        requerir_permiso('editar_claves'); // Doble check de seguridad
+        
+        if (!isset($_FILES['archivo_csv']) || $_FILES['archivo_csv']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(["status" => "error", "message" => "No se recibió ningún archivo válido."]);
+            exit;
+        }
+
+        $fileTmpPath = $_FILES['archivo_csv']['tmp_name'];
+        $handle = fopen($fileTmpPath, 'r');
+
+        if (!$handle) {
+            echo json_encode(["status" => "error", "message" => "No se pudo leer el archivo CSV."]);
+            exit;
+        }
+
+        fgetcsv($handle, 1000, ","); // Omitir cabecera
+
+        $conn->begin_transaction();
+        try {
+            $stmt = $conn->prepare("UPDATE llaves_maestras SET clave_maestra = ? WHERE numero_departamento = ?");
+            $procesados = 0;
+
+            while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                $numDep = trim($data[0] ?? ''); // Primera columna: numero_departamento
+                $clave  = trim($data[3] ?? ''); // Cuarta columna: clave_maestra
+
+                if (!empty($numDep) && !empty($clave)) {
+                    $stmt->bind_param("ss", $clave, $numDep);
+                    $stmt->execute();
+                    $procesados++;
+                }
+            }
+            $stmt->close();
+            $conn->commit();
+
+            echo json_encode(["status" => "success", "message" => "Carga masiva completada. Se actualizaron $procesados claves."]);
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo json_encode(["status" => "error", "message" => "Error en la BD: " . $e->getMessage()]);
+        }
+        
+        fclose($handle);
+        $conn->close();
+        exit;
+    }
+
     $inputJSON = file_get_contents('php://input');
     $data = json_decode($inputJSON, true);
 

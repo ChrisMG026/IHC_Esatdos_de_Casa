@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Recuperar Contraseña - Residente Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Recuperar Contraseña</title>
     <link rel="stylesheet" href="../CSS/styles.css?v=4.3">
     <script>
         (function() {
@@ -14,50 +15,57 @@
     </script>
     <style>
         .login-body { display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg-main); }
-        .login-card { background: var(--bg-card); padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; border: 1px solid var(--border-color); text-align: center; }
+        .login-card { background: var(--bg-card); padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 420px; border: 1px solid var(--border-color); text-align: center; }
         .login-card h2 { color: var(--text-primary); margin-bottom: 10px; font-size: 1.4rem; font-weight: 800; }
         .login-card p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px; }
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; }
         .input-group input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); outline: none; }
-        .btn-login { width: 100%; padding: 12px; background: #6366f1; color: #fff; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+        .btn-login { width: 100%; padding: 12px; background: #6366f1; color: #fff; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: 0.2s; margin-bottom: 10px;}
         .btn-login:hover { background: #4f46e5; }
-        .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); margin-top: 10px; }
+        .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); }
         .btn-secondary:hover { background: var(--bg-main); }
     </style>
 </head>
 <body class="login-body">
 
     <div class="login-card">
-        <h2>🔑 Recuperar Contraseña</h2>
-        <p>Ingresa tu usuario para buscar tu pregunta de seguridad.</p>
-
+        <div class="brand" style="justify-content: center; margin-bottom: 15px;">
+            <div class="brand-icon" style="width: 45px; height: 45px; font-size: 1.5rem;">R</div>
+        </div>
+        <h2>Recuperar Contraseña</h2>
+        
         <!-- PASO 1: PEDIR USUARIO -->
         <form id="formPaso1" onsubmit="buscarPregunta(event)">
+            <p>Ingresa tu usuario para buscar tu pregunta de seguridad.</p>
             <div class="input-group">
-                <label>Nombre de Usuario:</label>
+                <label>Usuario:</label>
                 <input type="text" id="recUser" placeholder="Ej. jperez" required>
             </div>
-            <button type="submit" class="btn-login">Buscar mi cuenta</button>
+            <button type="submit" class="btn-login" id="btnBuscar">Buscar mi cuenta</button>
             <button type="button" class="btn-login btn-secondary" onclick="window.location.href='login.html'">Volver al Login</button>
         </form>
 
-        <!-- PASO 2: PREGUNTA Y NUEVA CONTRASEÑA (Oculto por defecto) -->
+        <!-- PASO 2: PREGUNTA Y NUEVA CONTRASEÑA -->
         <form id="formPaso2" style="display: none;" onsubmit="cambiarPassword(event)">
             <input type="hidden" id="resetUser">
+            
             <div class="input-group">
                 <label>Pregunta de Seguridad:</label>
                 <input type="text" id="preguntaMostrada" readonly style="background: var(--bg-main); font-weight: bold; color: #6366f1;">
             </div>
+            
             <div class="input-group">
                 <label>Tu Respuesta:</label>
                 <input type="text" id="respuestaSecreta" placeholder="Escribe tu respuesta" required>
             </div>
+            
             <div class="input-group">
                 <label>Nueva Contraseña:</label>
                 <input type="password" id="nuevaPassword" placeholder="••••••••" required minlength="6">
             </div>
-            <button type="submit" class="btn-login" style="background: #10b981;">Cambiar Contraseña</button>
+            
+            <button type="submit" class="btn-login" style="background: #10b981;" id="btnCambiar">Cambiar Contraseña</button>
             <button type="button" class="btn-login btn-secondary" onclick="location.reload()">Cancelar</button>
         </form>
     </div>
@@ -78,26 +86,41 @@
         async function buscarPregunta(e) {
             e.preventDefault();
             let user = document.getElementById('recUser').value.trim();
+            let btn = document.getElementById('btnBuscar');
+            btn.innerText = "Buscando...";
+            btn.disabled = true;
 
-            let res = await fetch('../API/api_recuperar.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accion: 'buscar', username: user })
-            });
-            let data = await res.json();
+            try {
+                let res = await fetch('../API/api_recuperar.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion: 'buscar', username: user })
+                });
+                let data = await res.json();
 
-            if (data.status === 'success') {
-                document.getElementById('formPaso1').style.display = 'none';
-                document.getElementById('formPaso2').style.display = 'block';
-                document.getElementById('resetUser').value = user;
-                document.getElementById('preguntaMostrada').value = data.pregunta;
-            } else {
-                mostrarNotificacion(data.message, 'error');
+                if (data.status === 'success') {
+                    document.getElementById('formPaso1').style.display = 'none';
+                    document.getElementById('formPaso2').style.display = 'block';
+                    document.getElementById('resetUser').value = user;
+                    document.getElementById('preguntaMostrada').value = data.pregunta;
+                } else {
+                    mostrarNotificacion(data.message, 'error');
+                    btn.innerText = "Buscar mi cuenta";
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                mostrarNotificacion("Error de conexión.", 'error');
+                btn.innerText = "Buscar mi cuenta";
+                btn.disabled = false;
             }
         }
 
         async function cambiarPassword(e) {
             e.preventDefault();
+            let btn = document.getElementById('btnCambiar');
+            btn.innerText = "Actualizando...";
+            btn.disabled = true;
+
             let payload = {
                 accion: 'cambiar',
                 username: document.getElementById('resetUser').value,
@@ -105,18 +128,26 @@
                 nueva_password: document.getElementById('nuevaPassword').value
             };
 
-            let res = await fetch('../API/api_recuperar.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            let data = await res.json();
+            try {
+                let res = await fetch('../API/api_recuperar.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                let data = await res.json();
 
-            if (data.status === 'success') {
-                mostrarNotificacion(data.message, 'success');
-                setTimeout(() => window.location.href = 'login.html', 2000);
-            } else {
-                mostrarNotificacion(data.message, 'error');
+                if (data.status === 'success') {
+                    mostrarNotificacion(data.message, 'success');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                } else {
+                    mostrarNotificacion(data.message, 'error');
+                    btn.innerText = "Cambiar Contraseña";
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                mostrarNotificacion("Error de conexión.", 'error');
+                btn.innerText = "Cambiar Contraseña";
+                btn.disabled = false;
             }
         }
     </script>

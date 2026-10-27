@@ -739,3 +739,83 @@ body.dark-mode .table-card table td {
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
 }
+
+/* =========================================================
+   DISEÑO RESPONSIVE (ADAPTACIÓN A PANTALLAS PEQUEÑAS)
+   ========================================================= */
+
+/* --- 1. TABLETS Y LAPTOPS PEQUEÑAS (Hasta 1024px) --- */
+@media (max-width: 1024px) {
+    /* Achicamos un poco la barra lateral */
+    aside { width: 200px; }
+    .nav-item { font-size: 0.85rem; padding: 8px 10px; }
+    .brand span { font-size: 1rem; }
+    
+    /* Hacemos que los buscadores ocupen más espacio */
+    .search-container { width: 50% !important; }
+    
+    /* Achicamos las tarjetas de estadísticas para que quepan 2 por fila */
+    .stats-summary, .stat-card, div[style*="grid-template-columns"] {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    }
+}
+
+/* --- 2. TABLETS VERTICALES (Hasta 768px) --- */
+@media (max-width: 768px) {
+    /* El menú lateral se convierte en un menú superior */
+    body { flex-direction: column; }
+    aside { 
+        width: 100%; 
+        border-right: none; 
+        border-bottom: 1px solid var(--border-color);
+        padding: 10px 15px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .brand { margin-bottom: 0; }
+    .nav-menu { 
+        flex-direction: row; 
+        overflow-x: auto; /* Permite hacer scroll horizontal en el menú si hay muchos botones */
+        padding-bottom: 5px;
+    }
+    .nav-item { white-space: nowrap; }
+    
+    /* Acomodamos el header */
+    header { height: auto; flex-wrap: wrap; padding: 10px 15px; gap: 10px; }
+    .search-container { width: 100% !important; margin-bottom: 5px; }
+    
+    /* Las tablas se vuelven scrollables (muy importante) */
+    .table-card { overflow-x: auto; }
+    table { min-width: 600px; /* Fuerza a la tabla a mantener un ancho mínimo para no aplastarse */ }
+    
+    /* Achicamos letras en las gráficas del dashboard */
+    canvas { max-height: 200px; }
+}
+
+/* --- 3. CELULARES (Hasta 480px) --- */
+@media (max-width: 480px) {
+    /* Todo a una sola columna */
+    .stats-summary, .stat-card, div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Botones de acción (Guardar, Cancelar, etc.) ocupan todo el ancho */
+    .action-buttons { flex-direction: column; width: 100%; }
+    .action-buttons button { width: 100%; margin-bottom: 5px; }
+    
+    /* Formularios de modales se apilan uno sobre otro */
+    .form-row { flex-direction: column; gap: 10px; }
+    
+    /* El buscador oculta los filtros para no saturar la pantalla */
+    .filter-dropdowns { display: none; } 
+    
+    /* Ajuste de botones en tablas */
+    .btn-table { padding: 4px 6px; font-size: 0.7rem; }
+    
+    /* Modales más anchos y con scroll interno */
+    .modal-card { width: 95% !important; max-height: 90vh; overflow-y: auto; }
+    
+    /* Título del dashboard más pequeño */
+    h1 { font-size: 1.2rem !important; }
+}
