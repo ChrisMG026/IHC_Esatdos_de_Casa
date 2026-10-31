@@ -272,7 +272,7 @@
         </div>
     </div>
 
-    <!-- MODAL EDITAR USUARIO -->
+    <!-- MODAL EDITAR USUARIO (ACTUALIZADO) -->
     <div id="modalEditUsuarioOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
         <div class="modal-card" style="max-width: 450px; width: 90%; padding: 24px; border-radius: 12px; background: var(--bg-card);">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
@@ -296,9 +296,39 @@
                         </select>
                     </div>
                 </div>
+                <div class="form-row" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                    <div class="form-col">
+                        <label>Nueva Contraseña (Opcional):</label>
+                        <input type="password" id="editUserPassword" placeholder="Dejar en blanco para no cambiar" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-main); color: var(--text-primary);">
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; text-align: right;">
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; display: flex; justify-content: space-between;">
+                <button id="btnEliminarUsuario" onclick="eliminarUsuario()" style="background:#ef4444; color: white; padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">🗑️ Eliminar</button>
                 <button class="btn-save" onclick="guardarEdicionUsuario()" style="background:#6366f1; color: white; padding: 10px 20px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL  -->
+    <div id="modalConfirmacionCustom" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
+        <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div id="iconoConfirmacion" style="font-size: 2.5rem; margin-bottom: 10px;">⚠️</div>
+            <h3 id="tituloConfirmacion" style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.2rem;">Confirmación</h3>
+            <p id="textoConfirmacion" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;"></p>
+            
+            <!-- Input para cuando pedimos contraseña o texto (opcional) -->
+            <div id="contenedorInputConfirmacion" style="display: none; margin-bottom: 20px;">
+                <input type="text" id="inputTextoConfirmacion" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="btnCancelarConfirmacion" onclick="cerrarConfirmacionCustom()" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); font-weight: bold; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button id="btnAceptarConfirmacion" style="flex: 1; padding: 10px; border-radius: 6px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer;">
+                    Aceptar
+                </button>
             </div>
         </div>
     </div>

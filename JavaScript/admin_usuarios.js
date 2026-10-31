@@ -72,20 +72,68 @@ function llenarSelectRoles(roles) {
     });
 }
 
-function abrirModalUsuario() {
-    document.getElementById('newUserNombre').value = '';
-    document.getElementById('newUserUsername').value = '';
-    document.getElementById('newUserPassword').value = '';
-    document.getElementById('newUserPregunta').value = '';
-    document.getElementById('newUserRespuesta').value = '';
-    document.getElementById('modalUsuarioOverlay').style.display = 'flex';
+function abrirModalEditarUsuario(id, id_rol, activo) {
+    document.getElementById('editUserId').value = id;
+    document.getElementById('editUserPassword').value = ''; // Limpiamos el campo de contraseña
+    
+    let selectRol = document.getElementById('editUserRol');
+    selectRol.innerHTML = '';
+    rolesData.forEach(r => {
+        selectRol.innerHTML += `<option value="${r.id_rol}" ${r.id_rol == id_rol ? 'selected' : ''}>${r.nombre_rol}</option>`;
+    });
+    document.getElementById('editUserActivo').value = activo;
+
+    // Ocultar el botón de eliminar si es el Administrador Principal (ID 1)
+    let btnEliminar = document.getElementById('btnEliminarUsuario');
+    if (id == 1) {
+        btnEliminar.style.display = 'none'; // Protegemos al admin principal
+    } else {
+        btnEliminar.style.display = 'block';
+    }
+
+    document.getElementById('modalEditUsuarioOverlay').style.display = 'flex';
 }
+
 
 function cerrarModalUsuario() {
     document.getElementById('modalUsuarioOverlay').style.display = 'none';
 }
 
+async function guardarEdicionUsuario() {
+    let payload = {
+        accion: 'editar_usuario',
+        id_usuario: document.getElementById('editUserId').value,
+        id_rol: document.getElementById('editUserRol').value,
+        activo: document.getElementById('editUserActivo').value,
+        nueva_password: document.getElementById('editUserPassword').value.trim() // <-- NUEVO
+    };
+
+    try {
+        let res = await fetch('../API/api_admin_usuarios.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        let data = await res.json();
+        
+        if (data.status === 'success') {
+            mostrarNotificacion(data.message, 'success');
+            document.getElementById('modalEditUsuarioOverlay').style.display = 'none';
+            cargarDatosAdmin();
+        } else {
+            mostrarNotificacion(data.message, 'error');
+        }
+    } catch (e) {
+        mostrarNotificacion("Error de conexión.", 'error');
+    }
+}
+
 async function guardarUsuario() {
+    let btn = document.querySelector('#modalUsuarioOverlay .btn-save');
+    btn.innerText = "Guardando...";
+    btn.disabled = true;
+
+    // Recopilamos los datos
     let payload = {
         accion: 'crear_usuario',
         nombre_completo: document.getElementById('newUserNombre').value.trim(),
@@ -96,8 +144,18 @@ async function guardarUsuario() {
         respuesta: document.getElementById('newUserRespuesta').value.trim()
     };
 
+    // Validaciones en el Frontend
     if (!payload.nombre_completo || !payload.username || !payload.password || !payload.pregunta || !payload.respuesta) {
-        mostrarNotificacion("Todos los campos son obligatorios.", 'error');
+        mostrarNotificacion("Todos los campos son obligatorios. Por favor, llena la respuesta secreta.", 'error');
+        btn.innerText = "Guardar Usuario";
+        btn.disabled = false;
+        return;
+    }
+
+    if (payload.password.length < 6) {
+        mostrarNotificacion("La contraseña debe tener al menos 6 caracteres.", 'error');
+        btn.innerText = "Guardar Usuario";
+        btn.disabled = false;
         return;
     }
 
@@ -112,13 +170,50 @@ async function guardarUsuario() {
         if (data.status === 'success') {
             mostrarNotificacion(data.message, 'success');
             cerrarModalUsuario();
-            cargarDatosAdmin();
+            cargarDatosAdmin(); // Recargamos la tabla de usuarios
         } else {
             mostrarNotificacion(data.message, 'error');
         }
     } catch (e) {
-        mostrarNotificacion("Error al guardar.", 'error');
+        mostrarNotificacion("Error de conexión al guardar el usuario.", 'error');
+    } finally {
+        btn.innerText = "Guardar Usuario";
+        btn.disabled = false;
     }
+}
+
+
+async function eliminarUsuario() {
+    let id = document.getElementById('editUserId').value;
+    if (id == 1) {
+        mostrarNotificacion("El Administrador Principal no se puede eliminar.", 'error');
+        return;
+    }
+
+    mostrarConfirmacionCustom(
+        "¿Estás seguro de eliminar este usuario permanentemente? Esta acción no se puede deshacer.",
+        async function() {
+            try {
+                let res = await fetch('../API/api_admin_usuarios.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion: 'eliminar_usuario', id_usuario: id })
+                });
+                let data = await res.json();
+                
+                if (data.status === 'success') {
+                    mostrarNotificacion(data.message, 'success');
+                    document.getElementById('modalEditUsuarioOverlay').style.display = 'none';
+                    cargarDatosAdmin();
+                } else {
+                    mostrarNotificacion(data.message, 'error');
+                }
+            } catch (e) {
+                mostrarNotificacion("Error de conexión.", 'error');
+            }
+        },
+        { titulo: 'Eliminar Usuario', icono: '🗑️', btnAceptar: 'Sí, eliminar' }
+    );
 }
 
 function abrirModalEditarUsuario(id, id_rol, activo) {
@@ -320,4 +415,57 @@ async function cargarLogs() {
     } catch (e) {
         console.error("Error al cargar logs:", e);
     }
+}
+
+function abrirModalUsuario() {
+    document.getElementById('newUserNombre').value = '';
+    document.getElementById('newUserUsername').value = '';
+    document.getElementById('newUserPassword').value = '';
+    document.getElementById('newUserPregunta').value = '';
+    document.getElementById('newUserRespuesta').value = '';
+    document.getElementById('modalUsuarioOverlay').style.display = 'flex';
+}
+
+function cerrarModalUsuario() {
+    document.getElementById('modalUsuarioOverlay').style.display = 'none';
+}
+
+function mostrarConfirmacionCustom(mensaje, onConfirm, opciones = {}) {
+    document.getElementById('textoConfirmacion').innerText = mensaje;
+    document.getElementById('tituloConfirmacion').innerText = opciones.titulo || 'Confirmación';
+    document.getElementById('iconoConfirmacion').innerText = opciones.icono || '⚠️';
+    document.getElementById('btnAceptarConfirmacion').innerText = opciones.btnAceptar || 'Aceptar';
+    document.getElementById('btnAceptarConfirmacion').style.background = opciones.colorBoton || '#ef4444';
+    document.getElementById('btnCancelarConfirmacion').style.display = opciones.ocultarCancelar ? 'none' : 'block';
+
+    let contInput = document.getElementById('contenedorInputConfirmacion');
+    let input = document.getElementById('inputTextoConfirmacion');
+    
+    if (opciones.pideInput) {
+        contInput.style.display = 'block';
+        input.value = '';
+        input.placeholder = opciones.placeholderInput || '';
+    } else {
+        contInput.style.display = 'none';
+    }
+
+    // Removemos eventos anteriores
+    let nuevoBtn = document.getElementById('btnAceptarConfirmacion').cloneNode(true);
+    document.getElementById('btnAceptarConfirmacion').replaceWith(nuevoBtn);
+
+    nuevoBtn.onclick = function() {
+        let valorInput = opciones.pideInput ? input.value.trim() : '';
+        if (opciones.pideInput && valorInput === '') {
+            mostrarNotificacion('Este campo es obligatorio.', 'error');
+            return;
+        }
+        cerrarConfirmacionCustom();
+        onConfirm(valorInput);
+    };
+
+    document.getElementById('modalConfirmacionCustom').style.display = 'flex';
+}
+
+function cerrarConfirmacionCustom() {
+    document.getElementById('modalConfirmacionCustom').style.display = 'none';
 }

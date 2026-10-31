@@ -253,3 +253,4 @@ window.onload = function() {
     }
     cargarEstacionamientoDesdeBD();
 };
+

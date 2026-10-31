@@ -504,33 +504,27 @@ async function subirCSVClaves(input) {
     let file = input.files[0];
     if (!file) return;
 
-    if (!confirm(`¿Está seguro de que desea actualizar masivamente las claves con el archivo "${file.name}"?`)) {
-        input.value = '';
-        return;
-    }
+    mostrarConfirmacionCustom(`¿Estás seguro de que deseas actualizar masivamente las claves con el archivo "${file.name}"?`, 
+        function() {
+            let formData = new FormData();
+            formData.append('archivo_csv', file);
+            formData.append('accion', 'subir_csv_claves');
 
-    let formData = new FormData();
-    formData.append('archivo_csv', file);
-    formData.append('accion', 'subir_csv_claves'); // <-- ESTO FALTABA
-
-    try {
-        let response = await fetch('../API/api_configuraciones.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        let res = await response.json();
-        if (res.status === 'success') {
-            mostrarNotificacion(res.message, 'success');
-            cargarDatosConfig();
-        } else {
-            mostrarNotificacion("Error: " + res.message, 'error');
-        }
-    } catch (e) {
-        mostrarNotificacion("Error al procesar el archivo CSV.", 'error');
-    } finally {
-        input.value = '';
-    }
+            fetch('../API/api_configuraciones.php', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    mostrarNotificacion(res.message, 'success');
+                    cargarDatosConfig();
+                } else {
+                    mostrarNotificacion("Error: " + res.message, 'error');
+                }
+            })
+            .catch(e => mostrarNotificacion("Error al procesar el archivo CSV.", 'error'))
+            .finally(() => { input.value = ''; });
+        },
+        { titulo: 'Carga Masiva de Claves', icono: '📤', btnAceptar: 'Sí, subir', colorBoton: '#6366f1' }
+    );
 }
 
 function solicitarPermisoCambio(numDep) {

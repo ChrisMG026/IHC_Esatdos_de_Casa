@@ -616,7 +616,22 @@ function editarResidente(index) {
     document.getElementById('inpGenero').value = res.genero || 'Masculino';
     document.getElementById('inpTelefono').value = res.telefono || '';
     document.getElementById('inpCorreo').value = res.correo || '';
-    document.getElementById('inpRenta').value = res.renta || '';
+    // Si no tiene renta (Sin Contrato), le ponemos la renta por defecto
+    document.getElementById('inpRenta').value = res.renta > 0 ? res.renta : '10200';
+    document.getElementById('inpTipoContrato').value = res.tipo_contrato === '6 meses' ? '6 meses' : '12 meses';
+
+    // --- NUEVAS LÍNEAS: LLENAR FECHAS Y CONTRATO ---
+    if (res.fecha_move_in) {
+        document.getElementById('inpMoveInModal').value = res.fecha_move_in;
+    }
+    if (res.fecha_move_out) {
+        document.getElementById('inpMoveOutModal').value = res.fecha_move_out;
+    }
+    // Rellenar el tipo de contrato (si es 12 meses o 6 meses)
+    if (res.tipologia) {
+        // Usamos un pequeño truco por si viene como "12 meses" o "6 meses" desde la BD
+        document.getElementById('inpTipoContrato').value = (res.tipo_contrato === '6 meses') ? '6 meses' : '12 meses';
+    }
 
     // Poblar el select de cajones en modo edición
     let selCajon = document.getElementById('inpCajonModal');

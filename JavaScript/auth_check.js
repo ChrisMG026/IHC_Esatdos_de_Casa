@@ -140,3 +140,53 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
     }
 });
+
+// ==========================================
+// FUNCIONES GLOBALES DE CONFIRMACIÓN CUSTOM
+// ==========================================
+function mostrarConfirmacionCustom(mensaje, onConfirm, opciones = {}) {
+    // Si el modal no existe en la página, lo inyectamos
+    if (!document.getElementById('modalConfirmacionCustom')) {
+        let modalHTML = `
+            <div id="modalConfirmacionCustom" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
+                <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-color);">
+                    <div id="iconoConfirmacion" style="font-size: 2.5rem; margin-bottom: 10px;">⚠️</div>
+                    <h3 id="tituloConfirmacion" style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.2rem;">Confirmación</h3>
+                    <p id="textoConfirmacion" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;"></p>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button id="btnCancelarConfirmacion" onclick="cerrarConfirmacionCustom()" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); font-weight: bold; cursor: pointer;">
+                            Cancelar
+                        </button>
+                        <button id="btnAceptarConfirmacion" style="flex: 1; padding: 10px; border-radius: 6px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer;">
+                            Aceptar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    document.getElementById('textoConfirmacion').innerText = mensaje;
+    document.getElementById('tituloConfirmacion').innerText = opciones.titulo || 'Confirmación';
+    document.getElementById('iconoConfirmacion').innerText = opciones.icono || '⚠️';
+    document.getElementById('btnAceptarConfirmacion').innerText = opciones.btnAceptar || 'Aceptar';
+    document.getElementById('btnAceptarConfirmacion').style.background = opciones.colorBoton || '#ef4444';
+
+    // Clonar el botón para limpiar eventos anteriores
+    let btnAceptar = document.getElementById('btnAceptarConfirmacion');
+    let nuevoBtn = btnAceptar.cloneNode(true);
+    btnAceptar.replaceWith(nuevoBtn);
+
+    nuevoBtn.onclick = function() {
+        cerrarConfirmacionCustom();
+        onConfirm();
+    };
+
+    document.getElementById('modalConfirmacionCustom').style.display = 'flex';
+}
+
+function cerrarConfirmacionCustom() {
+    let modal = document.getElementById('modalConfirmacionCustom');
+    if (modal) modal.style.display = 'none';
+}

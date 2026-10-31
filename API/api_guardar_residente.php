@@ -121,32 +121,53 @@ try {
         $chkC->close();
 
         if ($existeContrato) {
+            // Actualizamos el contrato existente
             $stmt2 = $conn->prepare("UPDATE contrato SET nombre_residente = ?, celular = ?, correo = ?, tiene_carro = ? WHERE nomenclatura = ?");
             $stmt2->bind_param("sssss", $nombreCompleto, $telefono, $correo, $tieneCarro, $nomenclatura);
             $stmt2->execute();
             $stmt2->close();
+        } else {
+            // Si NO existe el contrato (estaba "Sin Contrato"), lo creamos ahora
+            // Usamos los datos que vienen del formulario (o valores por defecto si vienen vacíos)
+            $depVal = !empty($dep) ? $dep : explode('-', $nomenclatura)[0]; // Si no hay dep, lo sacamos de la nomenclatura
+            $recVal = !empty($recamara) ? $recamara : 'A1';
+            $rentaVal = $renta > 0 ? $renta : 10200.00; // Renta por defecto si no pusieron nada
+            $fechaInVal = !empty($fechaMoveIn) ? $fechaMoveIn : date('Y-m-d');
+            $fechaOutVal = !empty($fechaMoveOut) ? $fechaMoveOut : date('Y-m-d', strtotime('+1 year'));
+
+            $stmt2 = $conn->prepare("INSERT INTO contrato (numero_departamento, recamara, nomenclatura, nombre_residente, celular, correo, renta, tiene_carro, fecha_move_in, fecha_move_out) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt2->bind_param("ssssssdsss", $depVal, $recVal, $nomenclatura, $nombreCompleto, $telefono, $correo, $rentaVal, $tieneCarro, $fechaInVal, $fechaOutVal);
+            $stmt2->execute();
+            $stmt2->close();
         }
 
-                // 1. Limpiamos cualquier cajón anterior que tuviera este residente
+        // ========================================================
+        // NUEVO: ACTUALIZAR ESTACIONAMIENTO EN MODO EDICIÓN
+        // ========================================================
         $stmtDelEst = $conn->prepare("DELETE FROM estacionamiento WHERE nomenclatura = ?");
         $stmtDelEst->bind_param("s", $nomenclatura);
         $stmtDelEst->execute();
         $stmtDelEst->close();
 
-        // 2. Si se seleccionó un nuevo cajón, lo insertamos
         if (!empty($data['cajon']) && $data['cajon'] !== '') {
-            $nombreCajon = $data['cajon']; // Aquí ya vendrá "Cajón 2" desde el JS
-            
-            $stmtEst = $conn->prepare("INSERT INTO estacionamiento (cajon, numero_tag, nombre_completo, nomenclatura, modelo_auto, color_auto, placas) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $tagVal = $data['numero_tag'] ?? '---';
-            $modVal = $data['modelo_auto'] ?? '---';
-            $colVal = $data['color_auto'] ?? '---';
-            $plaVal = $data['placas'] ?? '---';
-            
-            $stmtEst->bind_param("sssssss", $nombreCajon, $tagVal, $nombreCompleto, $nomenclatura, $modVal, $colVal, $plaVal);
-            $stmtEst->execute();
-            $stmtEst->close();
+            $cajonRaw = $data['cajon']; 
+            preg_match('/\d+/', $cajonRaw, $matches);
+            $numeroCajon = isset($matches[0]) ? (int)$matches[0] : 0;
+
+            if ($numeroCajon > 0) {
+                $stmtEst = $conn->prepare("INSERT INTO estacionamiento (cajon, numero_tag, nombre_completo, nomenclatura, modelo_auto, color_auto, placas) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $tagVal = $data['numero_tag'] ?? '---';
+                $modVal = $data['modelo_auto'] ?? '---';
+                $colVal = $data['color_auto'] ?? '---';
+                $plaVal = $data['placas'] ?? '---';
+                
+                $stmtEst->bind_param("issssss", $numeroCajon, $tagVal, $nombreCompleto, $nomenclatura, $modVal, $colVal, $plaVal);
+                $stmtEst->execute();
+                $stmtEst->close();
+            }
         }
+        // ========================================================
+
         $msg = "Expediente actualizado correctamente.";
     } else {
           // --- INSERTAR NUEVO RESIDENTE Y CONTRATO ---

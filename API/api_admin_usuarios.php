@@ -63,26 +63,64 @@ if ($method === 'POST') {
         exit;
     }
 
-    // EDITAR USUARIO (Rol y Estado)
+ // EDITAR USUARIO (Rol, Estado y Contraseña)
     if ($accion === 'editar_usuario') {
         $id_usuario = intval($input['id_usuario']);
-        if ($id_usuario == 1) {
-            echo json_encode(["status" => "error", "message" => "El Administrador Principal no se puede modificar."]);
+        
+        // Proteger al admin principal
+        if ($id_usuario == 1 && $input['id_rol'] != 1) {
+            echo json_encode(["status" => "error", "message" => "No puedes quitarle el rol de Admin al Administrador Principal."]);
             exit;
         }
+
         $id_rol = intval($input['id_rol']);
         $activo = $input['activo'] ? 1 : 0;
+        $nueva_password = trim($input['nueva_password'] ?? '');
 
-        $stmt = $conn->prepare("UPDATE usuarios SET id_rol = ?, activo = ? WHERE id_usuario = ?");
-        $stmt->bind_param("iii", $id_rol, $activo, $id_usuario);
+        if (!empty($nueva_password)) {
+            if (strlen($nueva_password) < 6) {
+                echo json_encode(["status" => "error", "message" => "La nueva contraseña debe tener al menos 6 caracteres."]);
+                exit;
+            }
+            // Si envían contraseña, la actualizamos
+            $passHash = password_hash($nueva_password, PASSWORD_BCRYPT);
+            $stmt = $conn->prepare("UPDATE usuarios SET id_rol = ?, activo = ?, password_hash = ? WHERE id_usuario = ?");
+            $stmt->bind_param("iisi", $id_rol, $activo, $passHash, $id_usuario);
+        } else {
+            // Si no envían contraseña, solo actualizamos rol y estado
+            $stmt = $conn->prepare("UPDATE usuarios SET id_rol = ?, activo = ? WHERE id_usuario = ?");
+            $stmt->bind_param("iii", $id_rol, $activo, $id_usuario);
+        }
+
         if ($stmt->execute()) {
-            echo json_encode(["status" => "success", "message" => "Usuario actualizado."]);
+            echo json_encode(["status" => "success", "message" => "Usuario actualizado correctamente."]);
         } else {
             echo json_encode(["status" => "error", "message" => "Error al actualizar."]);
         }
         exit;
     }
 
+    // ELIMINAR USUARIO
+    if ($accion === 'eliminar_usuario') {
+        $id_usuario = intval($input['id_usuario']);
+
+        // Evitar que se elimine el administrador principal por accidente
+        $chkAdmin = $conn->query("SELECT es_admin_principal FROM roles r JOIN usuarios u ON r.id_rol = u.id_rol WHERE u.id_usuario = $id_usuario")->fetch_assoc();
+        if ($chkAdmin && $chkAdmin['es_admin_principal'] == 1) {
+            echo json_encode(["status" => "error", "message" => "No se puede eliminar al Administrador Principal."]);
+            exit;
+        }
+
+        $stmt = $conn->prepare("DELETE FROM usuarios WHERE id_usuario = ?");
+        $stmt->bind_param("i", $id_usuario);
+        
+        if ($stmt->execute()) {
+            echo json_encode(["status" => "success", "message" => "Usuario eliminado correctamente."]);
+        } else {
+            echo json_encode(["status" => "error", "message" => "Error al eliminar el usuario."]);
+        }
+        exit;
+    }
     // CREAR/EDITAR ROL
     if ($accion === 'crear_rol' || $accion === 'editar_rol') {
         $id_rol = intval($input['id_rol']);

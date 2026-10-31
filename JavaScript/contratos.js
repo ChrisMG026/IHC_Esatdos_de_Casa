@@ -611,11 +611,12 @@ async function guardarVehiculo() {
         return;
     }
 
-    if (opcion === 'RETIRAR') {
-        let confirmar = confirm(`¿Estás seguro de retirar el vehículo y liberar el cajón de ${contratoSeleccionado.nombre_residente}?`);
-        if (!confirmar) return;
+    if (opcion === 'ASIGNAR' && (!document.getElementById('inpCajonAutoModal').value || !document.getElementById('inpPlacasAutoModal').value)) {
+        mostrarNotificacion('Por favor asigna un cajón y escribe las placas.', 'error');
+        return;
     }
 
+    // 1. CREAMOS EL PAYLOAD AQUÍ ARRIBA, ANTES DE CUALQUIER COSA
     let payload = {
         action: 'guardar_auto',
         nomenclatura: contratoSeleccionado.nomenclatura,
@@ -629,11 +630,24 @@ async function guardarVehiculo() {
         motivo: motivo
     };
 
-    if (opcion === 'ASIGNAR' && (!payload.cajon || !payload.placas)) {
-        mostrarNotificacion('Por favor asigna un cajón y escribe las placas.', 'error');
-        return;
+    // 2. AHORA SÍ, EVALUAMOS SI ES RETIRAR O ASIGNAR
+    if (opcion === 'RETIRAR') {
+        mostrarConfirmacionCustom(`¿Estás seguro de retirar el vehículo y liberar el cajón de ${contratoSeleccionado.nombre_residente}?`, 
+            function() {
+                // Aquí adentro, 'payload' ya existe y está listo
+                enviarDatosVehiculo(payload);
+            },
+            { titulo: 'Retirar Vehículo', icono: '🚗', btnAceptar: 'Sí, retirar', colorBoton: '#ef4444' }
+        );
+        return; // Detenemos la ejecución para esperar el clic del usuario
+    } else {
+        // Si es ASIGNAR, lo enviamos directo sin preguntar
+        enviarDatosVehiculo(payload);
     }
+}
 
+// 3. FUNCIÓN QUE HACE EL FETCH (Ponla justo debajo de guardarVehiculo)
+async function enviarDatosVehiculo(payload) {
     try {
         let response = await fetch('../API/api_contratos.php', {
             method: 'POST',
