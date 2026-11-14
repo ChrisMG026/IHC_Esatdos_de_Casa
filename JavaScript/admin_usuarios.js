@@ -56,7 +56,7 @@ function renderTablaUsuarios(usuarios) {
                 <td>${u.id_usuario}</td>
                 <td><strong>${u.nombre_completo}</strong></td>
                 <td><code>${u.username}</code></td>
-                <td><span style="color: #6366f1; font-weight: 700;">${u.nombre_rol}</span></td>
+                <td><span style="color: var(--accent-color); font-weight: 700;">${u.nombre_rol}</span></td>
                 <td>${estadoBadge}</td>
                 <td style="text-align: center;">${botones}</td>
             </tr>

@@ -63,10 +63,10 @@ function actualizarBadgeSidebarYNotificaciones() {
                             Nomenclatura: <strong>${res.nomenclatura}</strong> | Vence: <strong>${res.fecha_move_out}</strong>
                         </div>
                         <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                            <button onclick="iniciarMoveOutDesdeNotif('${res.nomenclatura}')" style="background: #ef4444; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
+                            <button class="btn-danger" onclick="iniciarMoveOutDesdeNotif('${res.nomenclatura}')">
                                 🚪 Move-Out
                             </button>
-                            <button onclick="abrirModalRenovar('${res.nomenclatura}'); togglePanelNotificaciones();" style="background: #10b981; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
+                            <button class="btn-success" onclick="abrirModalRenovar('${res.nomenclatura}'); togglePanelNotificaciones();">
                                 🔄 Renovar
                             </button>
                         </div>
@@ -98,7 +98,7 @@ function iniciarMoveOutDesdeNotif(nomenclatura) {
         <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px 20px; font-size: 0.92rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px;">
                 <strong style="font-size: 1.1rem; color: var(--text-primary);">${res.nombre_residente}</strong>
-                <span style="background: #6366f1; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">${res.nomenclatura}</span>
+                <span style="background: var(--accent-color); color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">${res.nomenclatura}</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; color: var(--text-primary); line-height: 1.6;">
                 <div style="display: flex; flex-direction: column; gap: 6px;">
@@ -221,7 +221,7 @@ function renderTablaContratos(datos) {
                     <span style="font-weight: 700; color: var(--text-primary);">Dep. ${item.numero_departamento || 'N/A'}</span>
                     <span style="font-size: 0.78rem; color: var(--text-secondary);">(${item.recamara || 'N/A'})</span>
                 </td>
-                <td><span style="font-weight: 700; color: #6366f1; font-size: 0.88rem;">${item.nomenclatura || 'N/A'}</span></td>
+                <td><span style="font-weight: 700; color: var(--accent-color); font-size: 0.88rem;">${item.nomenclatura || 'N/A'}</span></td>
                 <td><strong>${item.nombre_residente || 'N/A'}</strong></td>
                 <td>
                     <div class="col-contacto">
@@ -704,13 +704,13 @@ async function verHistorico(nomenclatura, residente) {
 
             if (res.cambios.length > 0) {
                 tieneDatos = true;
-                contenedor.innerHTML += '<h4 style="margin: 12px 0 5px 0; color: #6366f1;">🔀 Historial de Cambios de Unidad:</h4>';
+                contenedor.innerHTML += '<h4 style="margin: 12px 0 5px 0; color: var(--accent-color);">🔀 Historial de Cambios de Unidad:</h4>';
                 res.cambios.forEach(c => {
                     contenedor.innerHTML += `
                         <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; font-weight: bold;">
                                 <span>${c.residente}</span>
-                                <span style="color: #6366f1;">${c.fecha_cambio}</span>
+                                <span style="color: var(--accent-color);">${c.fecha_cambio}</span>
                             </div>
                             <p style="margin: 4px 0; font-size: 0.88rem;">
                                 <strong>Cambio:</strong> ${c.nomenclatura_inicial} ➔ ${c.nomenclatura_nueva}

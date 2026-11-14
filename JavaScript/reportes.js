@@ -118,7 +118,7 @@ function renderReporteActivo() {
                     <tr>
                         <td><strong>${item.nombre_completo || 'N/A'}</strong></td>
                         <td>${item.numero_tag || '---'}</td>
-                        <td><span style="font-weight:700; color:#6366f1;">${item.nomenclatura || '---'}</span></td>
+                        <td><span style="font-weight:700; color:var(--accent-color);">${item.nomenclatura || '---'}</span></td>
                         <td>${item.cajon_anterior || '---'}</td>
                         <td><strong>${item.cajon_nuevo || '---'}</strong></td>
                         <td>${item.modelo_auto || '---'}</td>
@@ -142,14 +142,14 @@ function renderReporteActivo() {
                         <td>Dep. ${item.numero_departamento || 'N/A'}</td>
                         <td>${item.tipologia || '---'}</td>
                         <td>${item.recamara || '---'}</td>
-                        <td><span style="font-weight:700; color:#6366f1;">${item.nomenclatura || '---'}</span></td>
+                        <td><span style="font-weight:700; color:var(--accent-color);">${item.nomenclatura || '---'}</span></td>
                         <td><strong>${item.nombre_residente || 'N/A'}</strong></td>
                         <td><span class="badge-date bg-green">${item.move_in || 'N/A'}</span></td>
                     </tr>`;
             } else if (reporteActivo === 'move_out') {
                 tbody.innerHTML += `
                     <tr>
-                        <td><span style="font-weight:700; color:#6366f1;">${item.nomenclatura || '---'}</span></td>
+                        <td><span style="font-weight:700; color:var(--accent-color);">${item.nomenclatura || '---'}</span></td>
                         <td><strong>${item.nombre_residente || 'N/A'}</strong></td>
                         <td>${item.move_in || 'N/A'}</td>
                         <td><span class="badge-date bg-red">${item.move_out || 'N/A'}</span></td>
@@ -162,7 +162,7 @@ function renderReporteActivo() {
                     <tr>
                         <td><strong>${item.residente || 'N/A'}</strong></td>
                         <td>${item.nomenclatura_anterior || '---'}</td>
-                        <td><span style="font-weight:700; color:#6366f1;">${item.nomenclatura_nueva || '---'}</span></td>
+                        <td><span style="font-weight:700; color:var(--accent-color);">${item.nomenclatura_nueva || '---'}</span></td>
                         <td>${item.fecha_out_anterior || 'N/A'}</td>
                         <td><span class="badge-date bg-green">${item.fecha_out_nueva || 'N/A'}</span></td>
                         <td>${rAnt}</td>
@@ -173,7 +173,7 @@ function renderReporteActivo() {
             } else if (reporteActivo === 'departamentos_deshabilitados') {
                 tbody.innerHTML += `
                     <tr>
-                        <td><strong style="color:#6366f1;">${item.nomenclatura || '---'}</strong></td>
+                        <td><strong style="color:var(--accent-color);">${item.nomenclatura || '---'}</strong></td>
                         <td>Dep. ${item.numero_dep || '---'}</td>
                         <td>${item.razon || 'Sin motivo'}</td>
                         <td>${item.fecha_deshabilitacion || 'N/A'}</td>

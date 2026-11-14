@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Gestión de Residentes y Espacios</title>
-    <link rel="stylesheet" href="../CSS/styles.css?v=1.9">
+    <link rel="stylesheet" href="../CSS/styles.css?v=5.1">
     <!-- Librería SheetJS para Exportación a Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
@@ -17,21 +17,6 @@
             }
         })();
     </script>
-    <style>
-        html.dark-mode-preload .table-card {
-            background-color: #1e293b !important; /* Color oscuro de tus tarjetas */
-            border-color: #334155 !important;
-        }
-        html.dark-mode-preload .table-card table th {
-            background-color: #0f172a !important;
-            color: #94a3b8 !important;
-        }
-        html.dark-mode-preload .table-card table td {
-            background-color: #1e293b !important;
-            color: #f8fafc !important;
-            border-color: #334155 !important;
-        }
-    </style>
 </head>
 <body>
 
@@ -56,8 +41,8 @@
                 <li><a href="Configuraciones.html" class="nav-item">⚙️ Configuraciones</a></li>
                 <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">🛡️ Administración</a></li>  
             </ul>
-            <li style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                <a href="#" onclick="cerrarSesion(event)" class="nav-item" style="color: #ef4444; display: flex; align-items: center; gap: 10px;">
+            <li class="nav-logout">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">
                     🚪 Cerrar Sesión
                 </a>
             </li>
@@ -68,7 +53,7 @@
     <div class="main-wrapper">
         <header>
             <div class="search-container">
-                <span style="color: #94a3b8;">🔍</span>
+                <span style="color: var(--text-secondary);">🔍</span>
                 <input type="text" id="searchInput" placeholder="Busquerio universal" oninput="aplicarFiltros()">
                 
                 <div class="filter-dropdowns">
@@ -96,14 +81,14 @@
 
                 <!-- BOTÓN DE NOTIFICACIONES CON CAMPANA Y DROPDOWN -->
                 <div style="position: relative;">
-                    <button id="btnNotificaciones" onclick="togglePanelNotificaciones()" style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; position: relative;">
+                    <button id="btnNotificaciones" class="bell-btn" onclick="togglePanelNotificaciones()">
                         🔔
-                        <span id="headerBadgeNotif" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 0.7rem; font-weight: bold; padding: 2px 5px; border-radius: 50%; display: none;">0</span>
+                        <span id="headerBadgeNotif" class="bell-badge">0</span>
                     </button>
 
                     <!-- PANEL DESPLEGABLE DE NOTIFICACIONES -->
-                    <div id="panelNotificaciones" style="display: none; position: absolute; right: 0; top: 38px; width: 340px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; padding: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 10px;">
+                    <div id="panelNotificaciones" class="notif-panel">
+                        <div class="modal-head">
                             <strong style="font-size: 0.95rem; color: var(--text-primary);">Contratos Pendientes</strong>
                             <span onclick="togglePanelNotificaciones()" style="cursor: pointer; color: var(--text-secondary); font-size: 1.1rem;">&times;</span>
                         </div>
@@ -122,10 +107,10 @@
             <div class="page-title-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1>Gestión de Residentes y Espacios</h1>
                 <div class="action-buttons" style="display: flex; gap: 10px; align-items: center;">
-                <button onclick="abrirModalDevMasivo('residentes')" style="background-color: #4f46e5; color: #fff; font-weight: 700; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer;" title="Herramientas de Desarrollador">
+                <button class="btn-primary" onclick="abrirModalDevMasivo('residentes')" title="Herramientas de Desarrollador">
                     ⚠️ Carga Masiva DEV (Residentes / Contratos)
                 </button>
-                <button onclick="exportarResidentesExcel()" style="background-color: #10b981; color: #fff; font-weight: 700; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <button class="btn-success" onclick="exportarResidentesExcel()">
                     📊 Exportar Excel
                 </button>
                 <button class="btn-movein" onclick="abrirModalCrear()">+ MOVE-IN</button>
@@ -171,10 +156,10 @@
                 </table>
             </div>
             <!-- BARRA DE PAGINACIÓN DE TABLA -->
-<div class="pagination-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 10px 10px; font-size: 0.88rem; margin-top: -1px;">
+<div class="pagination-bar">
     <div style="display: flex; align-items: center; gap: 10px;">
         <span>Página:</span>
-        <select id="selectPagina" onchange="cambiarPaginaDirecta(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;"></select>
+        <select class="field-sm" id="selectPagina" onchange="cambiarPaginaDirecta(this.value)"></select>
         
         <div style="display: flex; gap: 4px;">
             <button class="btn-table" onclick="cambiarPaginaRelative(-1)" title="Página anterior">❮</button>
@@ -194,7 +179,7 @@
         
         <div style="display: flex; align-items: center; gap: 6px;">
             <span>Número de filas:</span>
-            <select id="selectFilasPorPagina" onchange="cambiarFilasPorPagina(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;">
+            <select class="field-sm" id="selectFilasPorPagina" onchange="cambiarFilasPorPagina(this.value)">
                 <option value="15">15</option>
                 <option value="25" selected>25</option>
                 <option value="50">50</option>
@@ -295,7 +280,7 @@
                             <div class="form-row">
                                 <div class="form-col" style="grid-column: span 2;">
                                     <label style="color: #ef4444; font-weight: bold;">* Motivo de cambio de unidad (Requerido):</label>
-                                    <textarea id="inpMotivoCambioUnidad" rows="2" placeholder="Describa la razón del cambio..." style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);"></textarea>
+                                    <textarea class="field" id="inpMotivoCambioUnidad" rows="2" placeholder="Describa la razón del cambio..."></textarea>
                                 </div>
                             </div>
                         </div>
@@ -339,7 +324,7 @@
     <!-- MODAL DE CONFIRMACIÓN DE MOVE-OUT -->
     <div id="modalMoveOutOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
         <div class="modal-card" style="max-width: 700px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; padding: 28px;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 18px;">
+            <div class="modal-header modal-head">
                 <h3 style="margin: 0; font-size: 1.25rem; color: #ef4444; display: flex; align-items: center; gap: 8px;">
                     ⚠️ Confirmación de Move-Out
                 </h3>
@@ -354,14 +339,14 @@
                 <label style="font-weight: 600; font-size: 0.88rem; color: #ef4444; display: block; margin-bottom: 6px;">
                     * Motivo de Salida (Requerido para la bitácora):
                 </label>
-                <input type="text" id="inpMotivoMoveOut" placeholder="Ej. Fin de contrato, Graduación, Retiro voluntario..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                <input class="field" type="text" id="inpMotivoMoveOut" placeholder="Ej. Fin de contrato, Graduación, Retiro voluntario...">
             </div>
 
             <div id="moveoutDetallesContenedor" style="overflow-y: auto; max-height: 45vh; display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; padding-right: 4px;"></div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 14px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <div class="modal-actions">
                 <button class="btn-table" onclick="cerrarModalMoveOut()" style="padding: 10px 22px; font-weight: 600;">Cancelar</button>
-                <button class="btn-table" onclick="ejecutarMoveOutConfirmado()" style="background-color: #ef4444; color: #fff; padding: 10px 24px; font-weight: 700; border: none; border-radius: 6px; cursor: pointer;">Confirmar Salida (Move-Out)</button>
+                <button class="btn-table btn-danger" onclick="ejecutarMoveOutConfirmado()">Confirmar Salida (Move-Out)</button>
             </div>
         </div>
     </div>
@@ -371,11 +356,11 @@
 
     <!-- MODAL DE OPCIONES DE IMPRESIÓN TRAS NUEVO REGISTRO -->
 <div id="modalPostAltaOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
-    <div class="modal-card" style="max-width: 480px; width: 90%; padding: 26px; border-radius: 16px; background: var(--bg-card); text-align: center;">
+    <div class="modal-card" style="max-width: 480px; width: 90%; padding: 26px; text-align: center;">
         <div style="font-size: 2.5rem; margin-bottom: 10px;">🎉</div>
         <h3 style="margin: 0 0 6px 0; color: var(--text-primary); font-size: 1.25rem;">¡Residente Registrado con Éxito!</h3>
         <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 18px;">
-            <strong id="residenteImpresionNombre" style="color: #6366f1;"></strong> (<span id="residenteImpresionNom"></span>)
+            <strong id="residenteImpresionNombre" style="color: var(--accent-color);"></strong> (<span id="residenteImpresionNom"></span>)
         </p>
 
         <p style="font-size: 0.88rem; color: var(--text-primary); margin-bottom: 20px; font-weight: 600;">
@@ -383,10 +368,10 @@
         </p>
 
         <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-            <button class="btn-table" onclick="imprimirCredencialDesdePostAlta()" style="padding: 10px; background: #6366f1; color: #fff; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <button class="btn-table btn-primary" onclick="imprimirCredencialDesdePostAlta()">
                 🪪 Imprimir Credencial / Expediente
             </button>
-            <button id="btnImprimirQRGrupo" class="btn-table" onclick="imprimirQRDesdePostAlta()" style="padding: 10px; background: #10b981; color: #fff; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <button id="btnImprimirQRGrupo" class="btn-table btn-success" onclick="imprimirQRDesdePostAlta()">
                 📷 Imprimir Pase de Acceso QR (TAG)
             </button>
         </div>
@@ -399,7 +384,7 @@
 
 <!-- MODAL ADVERTENCIA CARGA MASIVA DEV -->
 <div id="modalDevMasivoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
-    <div class="modal-card" style="max-width: 540px; width: 92%; padding: 28px; border-radius: 16px; background: var(--bg-card); border: 2px solid #ef4444;">
+    <div class="modal-card" style="max-width: 540px; width: 92%; padding: 28px; border: 2px solid #ef4444;">
         <div style="text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 8px;">🚨</div>
             <h3 style="color: #ef4444; margin: 0 0 10px 0; font-size: 1.35rem;">MODO DESARROLLADOR: Reemplazo Masivo</h3>
@@ -412,14 +397,14 @@
 
         <div style="margin-bottom: 16px;">
             <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">Selecciona qué tabla deseas actualizar:</label>
-            <select id="selectTipoDev" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+            <select class="field" id="selectTipoDev">
                 <option value="residentes">Tabla de Residentes (Datos Personales)</option>
                 <option value="contratos">Tabla de Contratos (Financieros y Contacto)</option>
             </select>
         </div>
 
         <div style="margin-bottom: 14px;">
-            <button type="button" onclick="descargarPlantillaDevSelected()" style="background: #059669; color: #fff; font-weight: bold; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+            <button class="btn-success" type="button" onclick="descargarPlantillaDevSelected()">
                 📥 Descargar Plantilla CSV para esta opción
             </button>
         </div>
@@ -437,9 +422,9 @@
                 </label>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                <button type="button" onclick="cerrarModalDevMasivo()" style="padding: 10px 18px; border-radius: 8px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer;">Cancelar</button>
-                <button type="submit" id="btnProcesarDev" style="padding: 10px 20px; border-radius: 8px; background: #ef4444; color: #fff; font-weight: bold; border: none; cursor: pointer;">⚡ Ejecutar Reemplazo Masivo</button>
+            <div class="modal-actions">
+                <button class="btn-ghost" type="button" onclick="cerrarModalDevMasivo()">Cancelar</button>
+                <button class="btn-danger" type="submit" id="btnProcesarDev">⚡ Ejecutar Reemplazo Masivo</button>
             </div>
         </form>
     </div>

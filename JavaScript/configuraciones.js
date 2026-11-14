@@ -161,7 +161,7 @@ function renderTablaLlaves() {
                 : '';
 
             let botonGuardarHTML = puedeEditarClaves
-                ? `<button id="btnSave_${item.numero_departamento}" onclick="guardarClave('${item.numero_departamento}')" style="display:none; background:#10b981; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Guardar</button>`
+                ? `<button class="btn-success" id="btnSave_${item.numero_departamento}" onclick="guardarClave('${item.numero_departamento}')">Guardar</button>`
                 : '';
 
             // 3. Pintamos la fila con los botones correctos
@@ -172,7 +172,7 @@ function renderTablaLlaves() {
                 <td>${item.tipologia}</td>
                 <td>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <input type="password" id="inpLlave_${item.numero_departamento}" value="${item.clave_maestra || ''}" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')" disabled style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); font-weight:700; width: 100px; opacity: 0.7;">
+                        <input class="field" type="password" id="inpLlave_${item.numero_departamento}" value="${item.clave_maestra || ''}" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')" disabled style="font-weight: 700; width: 100px; opacity: 0.7;">
                         
                         <button type="button" id="btnVer_${item.numero_departamento}" onclick="toggleVerClave('${item.numero_departamento}')" class="btn-table" title="Ver / Ocultar Clave" style="padding: 6px 10px; cursor: pointer;">Mostrar</button>
 
@@ -237,7 +237,7 @@ function renderTablaDepartamentos() {
                     <td>${dep.tipologia}</td>
                     <td>${dep.recamara}</td>
                     <td>${dep.cama}</td>
-                    <td><strong style="color: #6366f1;">${dep.nomenclatura}</strong></td>
+                    <td><strong style="color: var(--accent-color);">${dep.nomenclatura}</strong></td>
                     <td>${dep.estado || 'Disponible'}</td>
                     <td>
                         <button class="btn-status-toggle ${btnClass}" onclick="toggleEstadoDepartamento('${dep.nomenclatura}', '${dep.estado || 'Disponible'}')">

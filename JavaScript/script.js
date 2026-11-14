@@ -101,10 +101,10 @@ function actualizarBadgeSidebarYNotificaciones() {
                             Nomenclatura: <strong>${res.nomenclatura}</strong> | Vence: <strong>${res.fecha_move_out}</strong>
                         </div>
                         <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                            <button onclick="iniciarMoveOutDesdeNotif('${res.nomenclatura}')" style="background: #ef4444; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
+                            <button class="btn-danger" onclick="iniciarMoveOutDesdeNotif('${res.nomenclatura}')">
                                 🚪 Move-Out
                             </button>
-                            <button onclick="irARenovarContrato('${res.nomenclatura}')" style="background: #10b981; color: #fff; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
+                            <button class="btn-success" onclick="irARenovarContrato('${res.nomenclatura}')">
                                 🔄 Renovar
                             </button>
                         </div>
@@ -140,7 +140,7 @@ function iniciarMoveOutDesdeNotif(nomenclatura) {
         <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px 20px; font-size: 0.92rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px;">
                 <strong style="font-size: 1.1rem; color: var(--text-primary);">${res.nombre}</strong>
-                <span style="background: #6366f1; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">${res.nomenclatura || 'N/A'}</span>
+                <span style="background: var(--accent-color); color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">${res.nomenclatura || 'N/A'}</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; color: var(--text-primary); line-height: 1.6;">
                 <div style="display: flex; flex-direction: column; gap: 6px;">
@@ -260,7 +260,7 @@ function renderTabla(datos) {
                 <td>${badgeVehiculo}</td>
                 <td>${item.nivel || 'N/A'}</td>
                 <td>Dep. ${item.dep || 'N/A'}</td>
-                <td><span style="font-weight:700; color:#6366f1;">${item.nomenclatura || 'N/A'}</span></td>
+                <td><span style="font-weight:700; color:var(--accent-color);">${item.nomenclatura || 'N/A'}</span></td>
                 <td>${item.fecha_move_in || 'N/A'}</td>
                 <td><span class="badge-date ${bgDateClass}">${item.fecha_move_out || 'N/A'}</span></td>
                 <td><span class="badge-status ${badgeStatusClass}">${item.status}</span></td>
@@ -427,7 +427,7 @@ function verDetalles(index) {
             <p><strong>Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'} (${res.nomenclatura || 'N/A'})</p>
             <p><strong>Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
             <p><strong>Contrato:</strong> ${res.fecha_move_in || 'N/A'} al ${res.fecha_move_out || 'N/A'}</p>
-            <p><strong>Restante:</strong> <span style="color:#6366f1; font-weight:700;">${textoRestante}</span></p>
+            <p><strong>Restante:</strong> <span style="color:var(--accent-color); font-weight:700;">${textoRestante}</span></p>
         </div>
     `;
     document.getElementById('modalDetallesOverlay').style.display = 'flex';
@@ -1002,7 +1002,7 @@ function procesarSalidaSeleccionados() {
                 <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px 20px; font-size: 0.92rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px;">
                         <strong style="font-size: 1.1rem; color: var(--text-primary);">${res.nombre}</strong>
-                        <span style="background: #6366f1; color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">
+                        <span style="background: var(--accent-color); color: #fff; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;">
                             ${res.nomenclatura || 'N/A'}
                         </span>
                     </div>

@@ -6,7 +6,7 @@
     <title>RESIDENTE HUB - Gestión de Contratos</title>
     <!-- FontAwesome para los íconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../CSS/styles.css?v=4.4">
+    <link rel="stylesheet" href="../CSS/styles.css?v=5.1">
     <script>
         (function() {
           if (localStorage.getItem('theme') === 'dark') {
@@ -44,8 +44,8 @@
                 <li><a href="Configuraciones.html" class="nav-item">⚙️ Configuraciones</a></li>
                 <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">🛡️ Administración</a></li>  
             </ul>
-            <li style="margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                <a href="#" onclick="cerrarSesion(event)" class="nav-item" style="color: #ef4444; display: flex; align-items: center; gap: 10px;">
+            <li class="nav-logout">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">
                     🚪 Cerrar Sesión
                 </a>
             </li>
@@ -56,7 +56,7 @@
     <div class="main-wrapper">
         <header>
             <div class="search-container">
-                <span style="color: #94a3b8;">🔍</span>
+                <span style="color: var(--text-secondary);">🔍</span>
                 <input type="text" id="searchInput" placeholder="Buscar por residente, departamento o nomenclatura..." oninput="aplicarFiltrosContratos()">
                 
                 <div class="filter-dropdowns">
@@ -89,7 +89,7 @@
 
                     <!-- PANEL DESPLEGABLE DE NOTIFICACIONES -->
                     <div id="panelNotificaciones" style="display: none; position: absolute; right: 0; top: 38px; width: 340px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; padding: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 10px;">
+                        <div class="modal-head">
                             <strong style="font-size: 0.95rem; color: var(--text-primary);">Contratos Pendientes / Vencidos</strong>
                             <span onclick="togglePanelNotificaciones()" style="cursor: pointer; color: var(--text-secondary); font-size: 1.1rem;">&times;</span>
                         </div>
@@ -107,10 +107,10 @@
             <div class="page-title-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h1>Control y Gestión de Contratos</h1>
                 <div class="action-buttons" style="display: flex; gap: 10px; align-items: center;">   
-                    <button onclick="abrirModalDevMasivo('residentes')" style="background-color: #4f46e5; color: #fff; font-weight: 700; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer;" title="Herramientas de Desarrollador">
+                    <button class="btn-primary" onclick="abrirModalDevMasivo('residentes')" title="Herramientas de Desarrollador">
                          ⚠️ Carga Masiva DEV (Residentes / Contratos)
                     </button>
-                    <button onclick="exportarResidentesExcel()" style="background-color: #10b981; color: #fff; font-weight: 700; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-success" onclick="exportarResidentesExcel()">
                         📊 Exportar Excel
                     </button>
                     <button class="btn-movein" onclick="abrirModalCrear()">+ MOVE-IN</button>
@@ -140,7 +140,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="label">Renta Promedio por Unidad</div>
-                    <div class="val" id="statRentaPromedio" style="color: #6366f1;">$0</div>
+                    <div class="val" id="statRentaPromedio" style="color: var(--accent-color);">$0</div>
                 </div>
                 <div class="stat-card">
                     <div class="label">Por Vencer / Vencidos</div>
@@ -169,10 +169,10 @@
                 </table>
             </div>
             <!-- BARRA DE PAGINACIÓN CONTRATOS -->
-            <div class="pagination-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 10px 10px; font-size: 0.88rem; margin-top: -1px;">
+            <div class="pagination-bar">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span>Página:</span>
-                    <select id="selectPaginaContratos" onchange="cambiarPaginaDirectaContratos(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;"></select>
+                    <select class="field-sm" id="selectPaginaContratos" onchange="cambiarPaginaDirectaContratos(this.value)"></select>
                     
                     <div style="display: flex; gap: 4px;">
                         <button class="btn-table" onclick="cambiarPaginaRelativeContratos(-1)" title="Página anterior">❮</button>
@@ -192,7 +192,7 @@
                     
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span>Número de filas:</span>
-                        <select id="selectFilasPorPaginaContratos" onchange="cambiarFilasPorPaginaContratos(this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); cursor: pointer;">
+                        <select class="field-sm" id="selectFilasPorPaginaContratos" onchange="cambiarFilasPorPaginaContratos(this.value)">
                             <option value="15">15</option>
                             <option value="25" selected>25</option>
                             <option value="50">50</option>
@@ -211,20 +211,20 @@
 
     <!-- MODAL DE RENOVACIÓN DE CONTRATO -->
     <div id="modalRenovarOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
-        <div class="modal-card" style="max-width: 580px; width: 92%; padding: 24px; border-radius: 12px; background: var(--bg-card); max-height: 85vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <div class="modal-card" style="max-width: 580px; width: 92%; padding: 24px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-head">
                 <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                     🔄 Renovación de Contrato
                 </h3>
                 <span onclick="cerrarModalRenovar()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
             </div>
 
-            <p id="renovarResidenteInfo" style="font-weight: bold; color: #6366f1; font-size: 1.05rem; margin-bottom: 14px;"></p>
+            <p id="renovarResidenteInfo" style="font-weight: bold; color: var(--accent-color); font-size: 1.05rem; margin-bottom: 14px;"></p>
 
             <div style="display: flex; flex-direction: column; gap: 14px;">
                 <div>
                     <label style="display: block; margin-bottom: 4px; font-weight: 600;">Extensión de plazo:</label>
-                    <select id="inpPlazoExtension" onchange="calcularNuevaFechaSalidaModal()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    <select class="field" id="inpPlazoExtension" onchange="calcularNuevaFechaSalidaModal()">
                         <option value="12">Renovar por 12 meses</option>
                         <option value="6">Renovar por 6 meses</option>
                     </select>
@@ -233,17 +233,17 @@
                 <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div>
                         <label style="display: block; margin-bottom: 4px; font-weight: 600;">Nueva Fecha Move-Out:</label>
-                        <input type="date" id="inpNuevaFechaOut" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <input class="field" type="date" id="inpNuevaFechaOut">
                     </div>
                     <div>
                         <label style="display: block; margin-bottom: 4px; font-weight: 600;">Monto Renta Mensual (MXN):</label>
-                        <input type="number" id="inpNuevaRenta" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <input class="field" type="number" id="inpNuevaRenta">
                     </div>
                 </div>
 
                 <div style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
                     <label style="font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">¿Desea cambiar de Departamento / Unidad en esta renovación?</label>
-                    <select id="inpCambiaUnidadRenovacion" onchange="evaluarCambioUnidadRenovacion()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    <select class="field" id="inpCambiaUnidadRenovacion" onchange="evaluarCambioUnidadRenovacion()">
                         <option value="NO">NO (Conservar departamento actual)</option>
                         <option value="SI">SI (Asignar nueva unidad)</option>
                     </select>
@@ -253,41 +253,41 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <div>
                             <label style="font-size: 0.85rem; font-weight: 600;">Nivel:</label>
-                            <select id="inpNivelRenov" onchange="onNivelRenovChange()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"><option value="">-- Seleccionar --</option></select>
+                            <select class="field" id="inpNivelRenov" onchange="onNivelRenovChange()"><option value="">-- Seleccionar --</option></select>
                         </div>
                         <div>
                             <label style="font-size: 0.85rem; font-weight: 600;">No. Dep:</label>
-                            <select id="inpDepRenov" onchange="onDepRenovChange()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"><option value="">-- Seleccionar --</option></select>
+                            <select class="field" id="inpDepRenov" onchange="onDepRenovChange()"><option value="">-- Seleccionar --</option></select>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <div>
                             <label style="font-size: 0.85rem; font-weight: 600;">Recámara:</label>
-                            <select id="inpRecamaraRenov" onchange="onRecamaraRenovChange()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"></select>
+                            <select class="field" id="inpRecamaraRenov" onchange="onRecamaraRenovChange()"></select>
                         </div>
                         <div>
                             <label style="font-size: 0.85rem; font-weight: 600;">Cama:</label>
-                            <select id="inpCamaRenov" onchange="actualizarNomenclaturaRenov()" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);"></select>
+                            <select class="field" id="inpCamaRenov" onchange="actualizarNomenclaturaRenov()"></select>
                         </div>
                     </div>
                     <div>
                         <label style="font-size: 0.85rem; font-weight: 600;">Nomenclatura Asignada (Nueva):</label>
-                        <input type="text" id="inpNomenclaturaRenov" readonly style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); font-weight: bold; color: #6366f1;">
+                        <input class="field" type="text" id="inpNomenclaturaRenov" readonly style="font-weight: bold;">
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+            <div class="modal-actions">
                 <button class="btn-table" onclick="cerrarModalRenovar()" style="padding: 8px 16px;">Cancelar</button>
-                <button class="btn-table" onclick="guardarRenovacion()" style="background: #10b981; color: #fff; font-weight: 700; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer;">Guardar Renovación</button>
+                <button class="btn-table btn-success" onclick="guardarRenovacion()">Guardar Renovación</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL DE GESTIÓN DE VEHÍCULO -->
     <div id="modalAutoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
-        <div class="modal-card" style="max-width: 550px; width: 92%; padding: 24px; border-radius: 12px; background: var(--bg-card);">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <div class="modal-card" style="max-width: 550px; width: 92%; padding: 24px;">
+            <div class="modal-head">
                 <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
                     🚗 Asignación / Gestión de Vehículo
                 </h3>
@@ -298,7 +298,7 @@
 
             <div style="margin-bottom: 14px;">
                 <label style="font-weight: 600; display: block; margin-bottom: 4px;">Acción de Vehículo:</label>
-                <select id="inpOpcionAuto" onchange="evaluarOpcionAuto()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                <select class="field" id="inpOpcionAuto" onchange="evaluarOpcionAuto()">
                     <option value="ASIGNAR">Asignar / Editar Vehículo y Cajón</option>
                     <option value="RETIRAR">Retirar Vehículo (Liberar Cajón)</option>
                 </select>
@@ -308,30 +308,30 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div>
                         <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Cajón de Estacionamiento:</label>
-                        <select id="inpCajonAutoModal" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <select class="field" id="inpCajonAutoModal">
                             <option value="">-- Seleccionar Cajón --</option>
                         </select>
                     </div>
                     <div>
                         <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Modelo del Auto:</label>
-                        <input type="text" id="inpModeloAutoModal" placeholder="Ej. Nissan Versa 2022" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <input class="field" type="text" id="inpModeloAutoModal" placeholder="Ej. Nissan Versa 2022">
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div>
                         <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Color del Auto:</label>
-                        <input type="text" id="inpColorAutoModal" placeholder="Ej. Blanco / Gris" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <input class="field" type="text" id="inpColorAutoModal" placeholder="Ej. Blanco / Gris">
                     </div>
                     <div>
                         <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Número de Tag:</label>
-                        <input type="text" id="inpTagAutoModal" placeholder="Ej. TAG-8849" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                        <input class="field" type="text" id="inpTagAutoModal" placeholder="Ej. TAG-8849">
                     </div>
                 </div>
 
                 <div style="margin-bottom: 12px;">
                     <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Placas:</label>
-                    <input type="text" id="inpPlacasAutoModal" placeholder="Ej. XYZ-1234" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                    <input class="field" type="text" id="inpPlacasAutoModal" placeholder="Ej. XYZ-1234">
                 </div>
             </div>
             
@@ -339,20 +339,20 @@
                 <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600; color: #ef4444;">
                     * Motivo del cambio / asignación (Requerido):
                 </label>
-                <input type="text" id="inpMotivoAutoModal" placeholder="Ej. Cambio de vehículo del residente / Asignación inicial" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                <input class="field" type="text" id="inpMotivoAutoModal" placeholder="Ej. Cambio de vehículo del residente / Asignación inicial">
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+            <div class="modal-actions">
                 <button class="btn-table" onclick="cerrarModalAuto()" style="padding: 8px 16px;">Cancelar</button>
-                <button class="btn-table" id="btnGuardarAuto" onclick="guardarVehiculo()" style="background: #6366f1; color: #fff; font-weight: 700; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer;">Guardar Asignación</button>
+                <button class="btn-table btn-primary" id="btnGuardarAuto" onclick="guardarVehiculo()">Guardar Asignación</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL DE HISTÓRICO -->
     <div id="modalHistoricoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
-        <div class="modal-card" style="max-width: 680px; width: 92%; max-height: 80vh; display: flex; flex-direction: column; padding: 24px; border-radius: 12px; background: var(--bg-card);">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+        <div class="modal-card" style="max-width: 680px; width: 92%; max-height: 80vh; display: flex; flex-direction: column; padding: 24px;">
+            <div class="modal-head">
                 <h3 style="margin: 0; color: var(--text-primary);">📜 Histórico de Renovaciones y Cambios</h3>
                 <span onclick="cerrarModalHistorico()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
             </div>
@@ -368,7 +368,7 @@
     <!-- MODAL DE CONFIRMACIÓN DE MOVE-OUT DIRECTO DESDE NOTIFICACIÓN -->
     <div id="modalMoveOutOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
         <div class="modal-card" style="max-width: 700px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; padding: 28px;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 18px;">
+            <div class="modal-header modal-head">
                 <h3 style="margin: 0; font-size: 1.25rem; color: #ef4444; display: flex; align-items: center; gap: 8px;">
                     ⚠️ Confirmación de Move-Out
                 </h3>
@@ -383,14 +383,14 @@
                 <label style="font-weight: 600; font-size: 0.88rem; color: #ef4444; display: block; margin-bottom: 6px;">
                     * Motivo de Salida (Requerido para la bitácora):
                 </label>
-                <input type="text" id="inpMotivoMoveOut" placeholder="Ej. Fin de contrato, Graduación..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+                <input class="field" type="text" id="inpMotivoMoveOut" placeholder="Ej. Fin de contrato, Graduación...">
             </div>
 
             <div id="moveoutDetallesContenedor" style="overflow-y: auto; max-height: 45vh; display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; padding-right: 4px;"></div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 14px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+            <div class="modal-actions">
                 <button class="btn-table" onclick="cerrarModalMoveOut()" style="padding: 10px 22px; font-weight: 600;">Cancelar</button>
-                <button class="btn-table" onclick="ejecutarMoveOutConfirmado()" style="background-color: #ef4444; color: #fff; padding: 10px 24px; font-weight: 700; border: none; border-radius: 6px; cursor: pointer;">Confirmar Salida (Move-Out)</button>
+                <button class="btn-table btn-danger" onclick="ejecutarMoveOutConfirmado()">Confirmar Salida (Move-Out)</button>
             </div>
         </div>
     </div>
@@ -402,7 +402,7 @@
 
     <!-- MODAL ADVERTENCIA CARGA MASIVA DEV -->
 <div id="modalDevMasivoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
-    <div class="modal-card" style="max-width: 540px; width: 92%; padding: 28px; border-radius: 16px; background: var(--bg-card); border: 2px solid #ef4444;">
+    <div class="modal-card" style="max-width: 540px; width: 92%; padding: 28px; border: 2px solid #ef4444;">
         <div style="text-align: center;">
             <div style="font-size: 3rem; margin-bottom: 8px;">🚨</div>
             <h3 style="color: #ef4444; margin: 0 0 10px 0; font-size: 1.35rem;">MODO DESARROLLADOR: Reemplazo Masivo</h3>
@@ -415,14 +415,14 @@
 
         <div style="margin-bottom: 16px;">
             <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">Selecciona qué tabla deseas actualizar:</label>
-            <select id="selectTipoDev" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary);">
+            <select class="field" id="selectTipoDev">
                 <option value="residentes">Tabla de Residentes (Datos Personales)</option>
                 <option value="contratos">Tabla de Contratos (Financieros y Contacto)</option>
             </select>
         </div>
 
         <div style="margin-bottom: 14px;">
-            <button type="button" onclick="descargarPlantillaDevSelected()" style="background: #059669; color: #fff; font-weight: bold; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">
+            <button class="btn-success" type="button" onclick="descargarPlantillaDevSelected()">
                 📥 Descargar Plantilla CSV para esta opción
             </button>
         </div>
@@ -440,9 +440,9 @@
                 </label>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-                <button type="button" onclick="cerrarModalDevMasivo()" style="padding: 10px 18px; border-radius: 8px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer;">Cancelar</button>
-                <button type="submit" id="btnProcesarDev" style="padding: 10px 20px; border-radius: 8px; background: #ef4444; color: #fff; font-weight: bold; border: none; cursor: pointer;">⚡ Ejecutar Reemplazo Masivo</button>
+            <div class="modal-actions">
+                <button class="btn-ghost" type="button" onclick="cerrarModalDevMasivo()">Cancelar</button>
+                <button class="btn-danger" type="submit" id="btnProcesarDev">⚡ Ejecutar Reemplazo Masivo</button>
             </div>
         </form>
     </div>

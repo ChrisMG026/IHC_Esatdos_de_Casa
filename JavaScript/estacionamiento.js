@@ -62,12 +62,12 @@ function renderTablasEstacionamiento(datos) {
         let tieneTag = item.numero_tag && item.numero_tag.trim() !== '' && item.numero_tag !== '---';
         
         let botonQR = tieneTag 
-            ? `<button class="btn-table" onclick="abrirModalQR('${item.numero_tag}', '${item.nombre_completo || item.cajon}')" title="Ver QR de TAG para Plumas" style="background: rgba(99, 102, 241, 0.15); color: #6366f1; border-color: #6366f1;">📷 QR</button>`
+            ? `<button class="btn-table btn-soft" onclick="abrirModalQR('${item.numero_tag}', '${item.nombre_completo || item.cajon}')" title="Ver QR de TAG para Plumas">📷 QR</button>`
             : `<span style="color:var(--text-secondary); font-size:0.75rem;">Sin TAG</span>`;
 
         if (esAdmin) {
             let botonEditarAdminHTML = puedeEditarAdmin 
-            ? `<button class="btn-table" onclick='abrirModalAdmin(${JSON.stringify(item)})' title="Editar Cajón Exclusivo" style="background: rgba(147, 51, 234, 0.15); color: #c084fc; border-color: #a855f7;">✏️ Editar</button>`
+            ? `<button class="btn-table btn-soft-purple" onclick='abrirModalAdmin(${JSON.stringify(item)})' title="Editar Cajón Exclusivo">✏️ Editar</button>`
             : `<span style="color:var(--text-secondary); font-size:0.8rem;">Protegido</span>`;
             tbodyAdmin.innerHTML += `
                 <tr class="fila-admin">
@@ -90,7 +90,7 @@ function renderTablasEstacionamiento(datos) {
             else disponiblesCount++;
 
             let badgeEstado = esOcupado 
-                ? `<span class="badge-status" style="background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid #6366f1;">Ocupado</span>` 
+                ? `<span class="badge-status" style="background: rgba(99, 102, 241, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color);">Ocupado</span>` 
                 : `<span class="badge-status" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981;">Disponible</span>`;
 
             tbodyResidentes.innerHTML += `
@@ -98,7 +98,7 @@ function renderTablasEstacionamiento(datos) {
                     <td><strong>Cajón ${item.cajon}</strong></td>
                     <td>${item.numero_tag || '<span style="color:var(--text-secondary)">---</span>'}</td>
                     <td><strong>${item.nombre_completo || '<span style="color:var(--text-secondary)">Libre</span>'}</strong></td>
-                    <td><span style="font-weight: 600; color: #6366f1;">${item.nomenclatura || '---'}</span></td>
+                    <td><span style="font-weight: 600; color: var(--accent-color);">${item.nomenclatura || '---'}</span></td>
                     <td>${item.modelo_auto || '<span style="color:var(--text-secondary)">---</span>'}</td>
                     <td>${item.color_auto || '<span style="color:var(--text-secondary)">---</span>'}</td>
                     <td><strong style="font-family: monospace;">${item.placas || '---'}</strong></td>

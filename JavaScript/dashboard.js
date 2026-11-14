@@ -1,3 +1,6 @@
+// Tipografía de las gráficas alineada con el nuevo diseño
+if (window.Chart) { Chart.defaults.font.family = "'Plus Jakarta Sans', 'Segoe UI', sans-serif"; }
+
 let chartNivelesInstancia = null;
 let chartContratosInstancia = null;
 let chartGeneroGeneralInstancia = null;
@@ -58,7 +61,7 @@ function renderChartNiveles(niveles) {
                 {
                     label: 'Total Espacios',
                     data: totales,
-                    backgroundColor: '#334155',
+                    backgroundColor: 'rgba(148, 163, 184, 0.38)',
                     borderRadius: 6
                 }
             ]
@@ -184,7 +187,7 @@ function renderUltimosMovimientos(movimientos) {
             <tr>
                 <td>${badge}</td>
                 <td><strong>${m.residente}</strong></td>
-                <td><span style="font-weight:700; color:#6366f1;">${m.nomenclatura}</span></td>
+                <td><span style="font-weight:700; color:var(--accent-color);">${m.nomenclatura}</span></td>
                 <td>${m.fecha}</td>
             </tr>
         `;

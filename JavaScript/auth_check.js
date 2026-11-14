@@ -120,17 +120,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!window.location.pathname.includes('login.html')) {
         let modalHTML = `
             <div id="modalCerrarSesion" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
-                <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-color);">
+                <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center;">
                     <div style="font-size: 2.5rem; margin-bottom: 10px;">🚪</div>
                     <h3 style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.2rem;">¿Cerrar Sesión?</h3>
                     <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;">
                         Estás a punto de salir del sistema. Tendrás que ingresar tus credenciales nuevamente para acceder.
                     </p>
                     <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="document.getElementById('modalCerrarSesion').style.display='none'" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); font-weight: bold; cursor: pointer;">
+                        <button class="btn-ghost" onclick="document.getElementById('modalCerrarSesion').style.display='none'" style="flex: 1;">
                             Cancelar
                         </button>
-                        <button onclick="ejecutarCerrarSesion()" style="flex: 1; padding: 10px; border-radius: 6px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer;">
+                        <button class="btn-danger" onclick="ejecutarCerrarSesion()" style="flex: 1;">
                             Sí, salir
                         </button>
                     </div>
@@ -149,15 +149,15 @@ function mostrarConfirmacionCustom(mensaje, onConfirm, opciones = {}) {
     if (!document.getElementById('modalConfirmacionCustom')) {
         let modalHTML = `
             <div id="modalConfirmacionCustom" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
-                <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-color);">
+                <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center;">
                     <div id="iconoConfirmacion" style="font-size: 2.5rem; margin-bottom: 10px;">⚠️</div>
                     <h3 id="tituloConfirmacion" style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.2rem;">Confirmación</h3>
                     <p id="textoConfirmacion" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;"></p>
                     <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="btnCancelarConfirmacion" onclick="cerrarConfirmacionCustom()" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-primary); font-weight: bold; cursor: pointer;">
+                        <button class="btn-ghost" id="btnCancelarConfirmacion" onclick="cerrarConfirmacionCustom()" style="flex: 1;">
                             Cancelar
                         </button>
-                        <button id="btnAceptarConfirmacion" style="flex: 1; padding: 10px; border-radius: 6px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer;">
+                        <button class="btn-danger" id="btnAceptarConfirmacion" style="flex: 1;">
                             Aceptar
                         </button>
                     </div>
