@@ -86,8 +86,20 @@ try {
         throw new Exception("La renta debe ser un número mayor a 0.");
     }
 
-    // 4. VALIDAR DOBLE RESERVA
-    $chkDisp = $conn->prepare("SELECT nombre_completo FROM residentes WHERE nomenclatura = ?");
+    // 4. VERIFICAR BLOQUEO POR OTRO USUARIO (CONCURRENCIA)
+    $idUsuarioSesion = (int)($_SESSION['id_usuario'] ?? 0);
+    $stmtLockCheck = $conn->prepare("SELECT nombre_usuario FROM bloqueos_expedientes WHERE nomenclatura = ? AND id_usuario != ? AND ultimo_latido >= DATE_SUB(NOW(), INTERVAL 60 SECOND) LIMIT 1");
+    $stmtLockCheck->bind_param("si", $nomenclatura, $idUsuarioSesion);
+    $stmtLockCheck->execute();
+    $lockResult = $stmtLockCheck->get_result()->fetch_assoc();
+    $stmtLockCheck->close();
+
+    if ($lockResult) {
+        throw new Exception("No es posible guardar: el expediente de {$nomenclatura} está siendo modificado actualmente por {$lockResult['nombre_usuario']}.");
+    }
+
+    // 5. VALIDAR DOBLE RESERVA (CON BLOQUEO FOR UPDATE)
+    $chkDisp = $conn->prepare("SELECT nombre_completo FROM residentes WHERE nomenclatura = ? FOR UPDATE");
     $chkDisp->bind_param("s", $nomenclatura);
     $chkDisp->execute();
     $resDisp = $chkDisp->get_result();
@@ -135,8 +147,8 @@ try {
             $fechaInVal = !empty($fechaMoveIn) ? $fechaMoveIn : date('Y-m-d');
             $fechaOutVal = !empty($fechaMoveOut) ? $fechaMoveOut : date('Y-m-d', strtotime('+1 year'));
 
-            $stmt2 = $conn->prepare("INSERT INTO contrato (numero_departamento, recamara, nomenclatura, nombre_residente, celular, correo, renta, tiene_carro, fecha_move_in, fecha_move_out) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt2->bind_param("ssssssdsss", $depVal, $recVal, $nomenclatura, $nombreCompleto, $telefono, $correo, $rentaVal, $tieneCarro, $fechaInVal, $fechaOutVal);
+            $stmt2 = $conn->prepare("INSERT INTO contrato (numero_departamento, recamara, nombre_residente, celular, correo, renta, tiene_carro, fecha_move_in, fecha_move_out) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt2->bind_param("issssdsss", $depVal, $recVal, $nombreCompleto, $telefono, $correo, $rentaVal, $tieneCarro, $fechaInVal, $fechaOutVal);
             $stmt2->execute();
             $stmt2->close();
         }
@@ -176,8 +188,8 @@ try {
         $stmt1->execute();
         $stmt1->close();
 
-        $stmt2 = $conn->prepare("INSERT INTO contrato (numero_departamento, recamara, nomenclatura, nombre_residente, celular, correo, renta, tiene_carro, fecha_move_in, fecha_move_out) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt2->bind_param("ssssssdsss", $dep, $recamara, $nomenclatura, $nombreCompleto, $telefono, $correo, $renta, $tieneCarro, $fechaMoveIn, $fechaMoveOut);
+        $stmt2 = $conn->prepare("INSERT INTO contrato (numero_departamento, recamara, nombre_residente, celular, correo, renta, tiene_carro, fecha_move_in, fecha_move_out) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt2->bind_param("issssdsss", $dep, $recamara, $nombreCompleto, $telefono, $correo, $renta, $tieneCarro, $fechaMoveIn, $fechaMoveOut);
         $stmt2->execute();
         $stmt2->close();
 
@@ -208,6 +220,15 @@ try {
     // -----------------------------
 
     $conn->commit();
+
+    // Liberar bloqueo si este usuario lo tenía activo
+    if (!empty($nomenclatura) && $idUsuarioSesion > 0) {
+        $stmtRelLock = $conn->prepare("DELETE FROM bloqueos_expedientes WHERE nomenclatura = ? AND id_usuario = ?");
+        $stmtRelLock->bind_param("si", $nomenclatura, $idUsuarioSesion);
+        $stmtRelLock->execute();
+        $stmtRelLock->close();
+    }
+
     echo json_encode(["status" => "success", "message" => $msg]);
 
 } catch (Exception $e) {

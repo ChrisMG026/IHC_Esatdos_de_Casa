@@ -124,7 +124,7 @@ async function guardarEdicionUsuario() {
             mostrarNotificacion(data.message, 'error');
         }
     } catch (e) {
-        mostrarNotificacion("Error de conexión.", 'error');
+        mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
     }
 }
 
@@ -209,7 +209,7 @@ async function eliminarUsuario() {
                     mostrarNotificacion(data.message, 'error');
                 }
             } catch (e) {
-                mostrarNotificacion("Error de conexión.", 'error');
+                mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
             }
         },
         { titulo: 'Eliminar Usuario', icono: '🗑️', btnAceptar: 'Sí, eliminar' }
@@ -251,7 +251,7 @@ async function guardarEdicionUsuario() {
             mostrarNotificacion(data.message, 'error');
         }
     } catch (e) {
-        mostrarNotificacion("Error de conexión.", 'error');
+        mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
     }
 }
 
@@ -360,7 +360,7 @@ async function guardarRol() {
             mostrarNotificacion(data.message, 'error');
         }
     } catch (e) {
-        mostrarNotificacion("Error de conexión.", 'error');
+        mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
     }
 }
 

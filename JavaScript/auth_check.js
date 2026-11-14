@@ -1,3 +1,59 @@
+// ==========================================
+// ACCESIBILIDAD: saltar al contenido, Esc para cerrar ventanas, semántica de diálogo
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+    if (window.location.pathname.includes('login.html')) return;
+    let contenido = document.querySelector('.content');
+    if (contenido) {
+        contenido.id = contenido.id || 'contenido';
+        let salto = document.createElement('a');
+        salto.className = 'skip-link';
+        salto.href = '#' + contenido.id;
+        salto.innerText = 'Saltar al contenido';
+        document.body.insertBefore(salto, document.body.firstChild);
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+            if (getComputedStyle(m).display !== 'none') m.style.display = 'none';
+        });
+    });
+});
+window.addEventListener('load', function() {
+    document.querySelectorAll('.modal-card').forEach(c => {
+        c.setAttribute('role', 'dialog');
+        c.setAttribute('aria-modal', 'true');
+    });
+});
+
+// ==========================================
+// MENÚ LATERAL DESPLEGABLE (tablets y celulares)
+// ==========================================
+document.addEventListener("DOMContentLoaded", function() {
+    if (window.location.pathname.includes('login.html')) return;
+    let header = document.querySelector('header');
+    let aside = document.querySelector('aside');
+    if (!header || !aside) return;
+
+    let btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'menu-toggle';
+    btn.setAttribute('aria-label', 'Abrir menú');
+    btn.innerText = '☰';
+    header.insertBefore(btn, header.firstChild);
+
+    let overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    document.body.appendChild(overlay);
+
+    let cerrar = () => document.body.classList.remove('sidebar-open');
+    btn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+    overlay.addEventListener('click', cerrar);
+    aside.querySelectorAll('a').forEach(a => a.addEventListener('click', cerrar));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
+    window.addEventListener('resize', () => { if (window.innerWidth > 900) cerrar(); });
+});
+
 // Este script se encarga de pedir la sesión y configurar la vista
 document.addEventListener("DOMContentLoaded", async function() {
     

@@ -26,7 +26,7 @@ async function ejecutarLogin(e) {
             btn.disabled = false;
         }
     } catch (error) {
-        mostrarNotificacion("Error de conexión con el servidor.", 'error');
+        mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
         btn.innerText = "Iniciar Sesión";
         btn.disabled = false;
     }

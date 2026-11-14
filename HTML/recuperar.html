@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Recuperar Contraseña</title>
-    <link rel="stylesheet" href="../CSS/styles.css?v=5.1">
+    <link rel="stylesheet" href="../CSS/styles.css?v=5.3">
     <script>
         (function() {
             if (localStorage.getItem('theme') === 'dark') {
@@ -101,7 +101,7 @@
                     btn.disabled = false;
                 }
             } catch (error) {
-                mostrarNotificacion("Error de conexión.", 'error');
+                mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
                 btn.innerText = "Buscar mi cuenta";
                 btn.disabled = false;
             }
@@ -137,7 +137,7 @@
                     btn.disabled = false;
                 }
             } catch (error) {
-                mostrarNotificacion("Error de conexión.", 'error');
+                mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
                 btn.innerText = "Cambiar Contraseña";
                 btn.disabled = false;
             }

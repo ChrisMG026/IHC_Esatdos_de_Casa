@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Módulo de Reportes</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../CSS/styles.css?v=5.1">
+    <link rel="stylesheet" href="../CSS/styles.css?v=5.3">
     <!-- Librería SheetJS para Exportación a Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
@@ -30,17 +30,16 @@
                 <span>RESIDENTE HUB</span>
             </div>
             <ul class="nav-menu">
-                <li><a href="dashboard.html" class="nav-item">📊 Dashboard</a></li>
-                <li><a href="index.html" class="nav-item">👤 Residentes</a></li>
-                <li><a href="Contratos.html" class="nav-item">📄 Contratos</a></li>
-                <li><a href="Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
-                <li><a href="Reportes.html" class="nav-item active">📈 Reportes</a></li>
-                <li><a href="Configuraciones.html" class="nav-item">⚙️ Configuraciones</a></li>
-                <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">🛡️ Administración</a></li>  
+                <li><a href="dashboard.html" class="nav-item">Dashboard</a></li>
+                <li><a href="index.html" class="nav-item">Residentes</a></li>
+                <li><a href="Contratos.html" class="nav-item">Contratos</a></li>
+                <li><a href="Estacionamiento.html" class="nav-item">Estacionamiento</a></li>
+                <li><a href="Reportes.html" class="nav-item active">Reportes</a></li>
+                <li><a href="Configuraciones.html" class="nav-item">Configuraciones</a></li>
+                <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">Administración</a></li>  
             </ul>
             <li class="nav-logout">
-                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">
-                    🚪 Cerrar Sesión
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">Cerrar sesión
                 </a>
             </li>
         </div>
@@ -79,26 +78,19 @@
 
             <!-- NAVEGACIÓN DE REPORTES POR PESTAÑAS -->
             <div class="reports-tabs">
-                <button class="report-tab-btn active" onclick="cambiarReporte('cambios_cajon', this)">
-                    🚗 Cambios de Cajón <span class="report-badge" id="badgeCambiosCajon">0</span>
+                <button class="report-tab-btn active" onclick="cambiarReporte('cambios_cajon', this)">Cambios de Cajón <span class="report-badge" id="badgeCambiosCajon">0</span>
                 </button>
-                <button class="report-tab-btn" onclick="cambiarReporte('cambio_unidad', this)">
-                    🔄 Cambio de Unidad <span class="report-badge" id="badgeCambioUnidad">0</span>
+                <button class="report-tab-btn" onclick="cambiarReporte('cambio_unidad', this)">Cambio de Unidad <span class="report-badge" id="badgeCambioUnidad">0</span>
                 </button>
-                <button class="report-tab-btn" onclick="cambiarReporte('move_in', this)">
-                    📥 Move-In <span class="report-badge" id="badgeMoveIn">0</span>
+                <button class="report-tab-btn" onclick="cambiarReporte('move_in', this)">Move-In <span class="report-badge" id="badgeMoveIn">0</span>
                 </button>
-                <button class="report-tab-btn" onclick="cambiarReporte('move_out', this)">
-                    📤 Move-Out <span class="report-badge" id="badgeMoveOut">0</span>
+                <button class="report-tab-btn" onclick="cambiarReporte('move_out', this)">Move-Out <span class="report-badge" id="badgeMoveOut">0</span>
                 </button>
-                <button class="report-tab-btn" onclick="cambiarReporte('renovacion_contrato', this)">
-                    📜 Renovaciones <span class="report-badge" id="badgeRenovacion">0</span>
+                <button class="report-tab-btn" onclick="cambiarReporte('renovacion_contrato', this)">Renovaciones <span class="report-badge" id="badgeRenovacion">0</span>
                 </button>
-                <button class="report-tab-btn" onclick="cambiarReporte('departamentos_deshabilitados', this)">
-                    🏢 Deps. Deshabilitados/Habilitados <span class="report-badge" id="badgeDepsDesh">0</span>
+                <button class="report-tab-btn" onclick="cambiarReporte('departamentos_deshabilitados', this)">Deps. Deshabilitados/Habilitados <span class="report-badge" id="badgeDepsDesh">0</span>
                 </button>
-                <button class="report-tab-btn" onclick="cambiarReporte('cajones_deshabilitados', this)">
-                    🚫 Cajones Deshabilitados/Habilitados <span class="report-badge" id="badgeCajonesDesh">0</span>
+                <button class="report-tab-btn" onclick="cambiarReporte('cajones_deshabilitados', this)">Cajones Deshabilitados/Habilitados <span class="report-badge" id="badgeCajonesDesh">0</span>
                 </button>
             </div>
 

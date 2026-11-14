@@ -15,6 +15,96 @@ const porPagina = 25;
 let depSeleccionadoParaEditar = null;
 let departamentoSeleccionadoParaCambio = null;
 
+// ── Sistema de bloqueo concurrente (Configuraciones) ────────────────────────
+// Usamos una clave fija por recurso tipo "config:<numDep>" o "cajon:<nombre>"
+let cfgUsuarioId = 0;
+let cfgUsuarioNombre = '';
+let cfgRecursoBloqueado = null;  // clave del bloqueo activo
+let cfgTimerLatido = null;
+
+async function cfgInicializarUsuario() {
+    if (cfgUsuarioId > 0) return;
+    try {
+        let r = await fetch('../API/api_sesion.php');
+        let d = await r.json();
+        if (d && d.logueado) {
+            cfgUsuarioId = d.id_usuario || 0;
+            cfgUsuarioNombre = d.nombre || '';
+        }
+    } catch(e) {}
+}
+
+function mostrarModalBloqueoConfig(label, recurso, bloqueadoPor) {
+    let det = document.getElementById('txtBloqueoDetalle');
+    if (det) det.innerHTML = `<strong>${label}</strong> está siendo modificado actualmente por <strong>${bloqueadoPor || 'otro usuario'}</strong>.`;
+    let m = document.getElementById('modalBloqueoOverlay');
+    if (m) m.style.display = 'flex';
+    mostrarNotificacion(`${label} en modificación por ${bloqueadoPor}`, 'error');
+}
+
+function cerrarModalBloqueoConfig() {
+    let m = document.getElementById('modalBloqueoOverlay');
+    if (m) m.style.display = 'none';
+}
+
+function cfgIniciarLatido() {
+    cfgDetenerLatido();
+    cfgTimerLatido = setInterval(async () => {
+        if (!cfgRecursoBloqueado) { cfgDetenerLatido(); return; }
+        try {
+            await fetch('../API/api_bloqueos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'heartbeat', nomenclatura: cfgRecursoBloqueado })
+            });
+        } catch(e) {}
+    }, 20000);
+}
+
+function cfgDetenerLatido() {
+    if (cfgTimerLatido) { clearInterval(cfgTimerLatido); cfgTimerLatido = null; }
+}
+
+async function cfgAdquirirBloqueo(clave) {
+    cfgDetenerLatido();
+    if (cfgRecursoBloqueado && cfgRecursoBloqueado !== clave) {
+        // Liberar el anterior antes de adquirir el nuevo
+        await cfgLiberarBloqueo();
+    }
+    try {
+        await fetch('../API/api_bloqueos.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'bloquear', nomenclatura: clave })
+        });
+        cfgRecursoBloqueado = clave;
+        cfgIniciarLatido();
+    } catch(e) {}
+}
+
+async function cfgLiberarBloqueo() {
+    cfgDetenerLatido();
+    if (cfgRecursoBloqueado) {
+        let clave = cfgRecursoBloqueado;
+        cfgRecursoBloqueado = null;
+        try {
+            await fetch('../API/api_bloqueos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'desbloquear', nomenclatura: clave })
+            });
+        } catch(e) {}
+    }
+}
+
+window.addEventListener('beforeunload', () => {
+    if (cfgRecursoBloqueado) {
+        let blob = new Blob([JSON.stringify({ action: 'desbloquear', nomenclatura: cfgRecursoBloqueado })], { type: 'application/json' });
+        navigator.sendBeacon('../API/api_bloqueos.php', blob);
+    }
+});
+// ────────────────────────────────────────────────────────────────────────────
+
 // Sombra y Toasts nativos del sistema
 function mostrarNotificacion(mensaje, tipo = 'success') {
     let container = document.getElementById('toastContainer');
@@ -51,7 +141,7 @@ async function cargarDatosConfig() {
         }
     } catch (e) {
         console.error("Error de conexión:", e);
-        mostrarNotificacion("Error de conexión con el servidor.", 'error');
+        mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
     }
 }
 
@@ -256,7 +346,23 @@ function renderTablaDepartamentos() {
 }
 
 
-function toggleEstadoDepartamento(nomenclatura, estadoActual) {
+async function toggleEstadoDepartamento(nomenclatura, estadoActual) {
+    await cfgInicializarUsuario();
+    let claveBloqueo = 'dep:' + nomenclatura;
+
+    // Verificar bloqueo de otro usuario
+    try {
+        let rv = await fetch(`../API/api_bloqueos.php?action=verificar&nomenclatura=${encodeURIComponent(claveBloqueo)}`);
+        let dv = await rv.json();
+        if (dv.bloqueado && !dv.es_propio) {
+            mostrarModalBloqueoConfig(`El departamento ${nomenclatura}`, claveBloqueo, dv.bloqueado_por);
+            return;
+        }
+    } catch(e) {}
+
+    // Adquirir bloqueo antes de mostrar el modal de razón
+    await cfgAdquirirBloqueo(claveBloqueo);
+
     let nuevoEstado = (estadoActual === 'Deshabilitado') ? 'Disponible' : 'Deshabilitado';
     departamentoSeleccionadoParaCambio = { nomenclatura, nuevoEstado };
 
@@ -287,7 +393,9 @@ function toggleEstadoDepartamento(nomenclatura, estadoActual) {
 
 function cerrarModalRazon() {
     departamentoSeleccionadoParaCambio = null;
+    cajonSeleccionadoParaCambio = null;
     document.getElementById('modalRazonDep').style.display = 'none';
+    cfgLiberarBloqueo(); // Liberar bloqueo si cancela
 }
 
 function confirmarCambioEstadoDep() {
@@ -321,12 +429,15 @@ async function actualizarEstadoDepEnBD(nomenclatura, nuevoEstado, razon) {
         let res = await response.json();
         if (res.status === 'success') {
             mostrarNotificacion(res.message, 'success');
+            await cfgLiberarBloqueo(); // Liberar tras guardar
             cargarDatosConfig();
         } else {
             mostrarNotificacion("Error: " + res.message, 'error');
+            await cfgLiberarBloqueo();
         }
     } catch (e) {
         mostrarNotificacion("Error de red al intentar actualizar el estado.", 'error');
+        await cfgLiberarBloqueo();
     }
 }
 

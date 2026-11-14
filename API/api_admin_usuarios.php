@@ -1,10 +1,10 @@
 <?php
+require_once 'config.php';
 require_once 'auth_middleware.php';
 requerir_permiso('gestionar_usuarios');
 
 header('Content-Type: application/json; charset=utf-8');
-$conn = new mysqli("localhost", "root", "", "estado_de_casa_utower");
-$conn->set_charset("utf8mb4");
+$conn = conectarDB();
 
 $method = $_SERVER['REQUEST_METHOD'];
 

@@ -4,6 +4,8 @@ require_once 'auth_middleware.php';
 // Hacemos la verificación solo si es una acción POST (cuando guarda).
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requerir_permiso('editar_residentes');
+} else {
+    liberar_bloqueo_sesion();
 }
 header('Content-Type: application/json; charset=utf-8');
 
@@ -86,8 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtU2->execute();
                 $stmtU2->close();
 
-                $stmtU3 = $conn->prepare("UPDATE contrato SET numero_departamento = ?, recamara = ?, nomenclatura = ?, fecha_move_out = ?, renta = ? WHERE nomenclatura = ?");
-                $stmtU3->bind_param("ssssds", $depNuevo, $recamaraNueva, $nomNueva, $nuevaFechaOut, $nuevaRenta, $nomAnterior);
+                $stmtU3 = $conn->prepare("UPDATE contrato SET numero_departamento = ?, recamara = ?, fecha_move_out = ?, renta = ? WHERE nomenclatura = ?");
+                $stmtU3->bind_param("sssds", $depNuevo, $recamaraNueva, $nuevaFechaOut, $nuevaRenta, $nomAnterior);
                 $stmtU3->execute();
                 $stmtU3->close();
 
@@ -108,6 +110,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtRen->bind_param("sssssdds", $residente, $nomAnterior, $nomNueva, $fechaOutAnt, $nuevaFechaOut, $rentaAnt, $nuevaRenta, $plazo);
             $stmtRen->execute();
             $stmtRen->close();
+
+            // Liberar bloqueos si existían
+            $idUserSes = (int)($_SESSION['id_usuario'] ?? 0);
+            $nomA = $nomAnterior ?? ($nomenclatura ?? '');
+            $nomN = $nomNueva ?? ($nomenclatura ?? '');
+            if ($idUserSes > 0 && (!empty($nomA) || !empty($nomN))) {
+                $stmtRel = $conn->prepare("DELETE FROM bloqueos_expedientes WHERE (nomenclatura = ? OR nomenclatura = ?) AND id_usuario = ?");
+                $stmtRel->bind_param("ssi", $nomA, $nomN, $idUserSes);
+                $stmtRel->execute();
+                $stmtRel->close();
+            }
 
             $conn->commit();
             echo json_encode(["status" => "success", "message" => "Renovación procesada y registrada exitosamente."]);
@@ -186,6 +199,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtBit->execute();
 
                 $msg = "Vehículo y cajón asignados correctamente.";
+            }
+
+            // Liberar bloqueos si existían
+            $idUserSes = (int)($_SESSION['id_usuario'] ?? 0);
+            $nomA = $nomAnterior ?? ($nomenclatura ?? '');
+            $nomN = $nomNueva ?? ($nomenclatura ?? '');
+            if ($idUserSes > 0 && (!empty($nomA) || !empty($nomN))) {
+                $stmtRel = $conn->prepare("DELETE FROM bloqueos_expedientes WHERE (nomenclatura = ? OR nomenclatura = ?) AND id_usuario = ?");
+                $stmtRel->bind_param("ssi", $nomA, $nomN, $idUserSes);
+                $stmtRel->execute();
+                $stmtRel->close();
             }
 
             $conn->commit();

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Administración</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../CSS/styles.css?v=5.1">
+    <link rel="stylesheet" href="../CSS/styles.css?v=5.3">
     <script>
         (function() {
             if (localStorage.getItem('theme') === 'dark') {
@@ -30,20 +30,19 @@
                 <span>RESIDENTE HUB</span>
             </div>
             <ul class="nav-menu">
-                <li><a href="dashboard.html" class="nav-item">📊 Dashboard</a></li>
-                <li><a href="index.html" class="nav-item">👤 Residentes</a></li>
-                <li><a href="Contratos.html" class="nav-item">📄 Contratos</a></li>
-                <li><a href="Estacionamiento.html" class="nav-item">🚗 Estacionamiento</a></li>
-                <li><a href="Reportes.html" class="nav-item">📈 Reportes</a></li>
-                <li><a href="Configuraciones.html" class="nav-item">⚙️ Configuraciones</a></li>
+                <li><a href="dashboard.html" class="nav-item">Dashboard</a></li>
+                <li><a href="index.html" class="nav-item">Residentes</a></li>
+                <li><a href="Contratos.html" class="nav-item">Contratos</a></li>
+                <li><a href="Estacionamiento.html" class="nav-item">Estacionamiento</a></li>
+                <li><a href="Reportes.html" class="nav-item">Reportes</a></li>
+                <li><a href="Configuraciones.html" class="nav-item">Configuraciones</a></li>
                 <!-- Menú de admin controlado por auth_check.js -->
                 <li id="menuAdminUsuarios" style="display: none;">
-                    <a href="AdminUsuarios.html" class="nav-item active">🛡️ Administración</a>
+                    <a href="AdminUsuarios.html" class="nav-item active">Administración</a>
                 </li>
             </ul>
             <li class="nav-logout">
-                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">
-                    🚪 Cerrar Sesión
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">Cerrar sesión
                 </a>
             </li>
         </div>
@@ -71,9 +70,9 @@
 
             <!-- PESTAÑAS -->
             <div class="admin-tabs">
-                <button class="admin-tab-btn active" onclick="cambiarTabAdmin('usuarios', this)">👥 Usuarios del Sistema</button>
-                <button class="admin-tab-btn" onclick="cambiarTabAdmin('roles', this)">🔐 Roles y Permisos</button>
-                <button class="admin-tab-btn" onclick="cambiarTabAdmin('logs', this)">📜 Historial de Actividad</button>
+                <button class="admin-tab-btn active" onclick="cambiarTabAdmin('usuarios', this)">Usuarios del Sistema</button>
+                <button class="admin-tab-btn" onclick="cambiarTabAdmin('roles', this)">Roles y Permisos</button>
+                <button class="admin-tab-btn" onclick="cambiarTabAdmin('logs', this)">Historial de Actividad</button>
             </div>
 
             <!-- TAB USUARIOS -->

@@ -10,41 +10,66 @@ let departamentosDeshabilitadosSet = new Set();
 let cajonesDeshabilitadosSet = new Set();
 let nomenclaturaEditarActual = "";
 
+// Variables para el sistema de concurrencia y bloqueo de expedientes
+let usuarioActualId = 0;
+let usuarioActualNombre = "";
+let timerLatidoBloqueo = null;
+let nomenclaturaBloqueadaActiva = null;
+
+async function inicializarUsuarioActual() {
+    if (usuarioActualId > 0) return;
+    try {
+        let r = await fetch('../API/api_sesion.php');
+        let d = await r.json();
+        if (d && d.logueado) {
+            usuarioActualId = d.id_usuario || 0;
+            usuarioActualNombre = d.nombre || "";
+        }
+    } catch(e) {}
+}
+
 async function cargarResidentesDesdeBD() {
     try {
-        try {
-            let configResp = await fetch('../API/api_configuraciones.php');
-            let configRes = await configResp.json();
-            nomenclaturasDeshabilitadasSet.clear();
-            departamentosDeshabilitadosSet.clear();
-            cajonesDeshabilitadosSet.clear();
-            
-            if (configRes.status === 'success') {
-                if (configRes.departamentos) {
-                    configRes.departamentos.forEach(d => {
-                        if (d.estado === 'Deshabilitado') {
-                            if (d.nomenclatura) nomenclaturasDeshabilitadasSet.add(String(d.nomenclatura).trim().toUpperCase());
-                            let numDep = String(d.numero_dep || d.dep || '').trim();
-                            if (numDep) departamentosDeshabilitadosSet.add(numDep);
-                        }
-                    });
+        await inicializarUsuarioActual();
+
+        // 1. Cargar residentes y catálogo de deshabilitados en paralelo (Optimización de carga y eliminación de 403)
+        let [resResp, catResp] = await Promise.all([
+            fetch('../API/api_residentes.php'),
+            fetch('../API/api_residentes.php?catalogo=deshabilitados').catch(() => null)
+        ]);
+
+        residentesData = await resResp.json();
+
+        nomenclaturasDeshabilitadasSet.clear();
+        departamentosDeshabilitadosSet.clear();
+        cajonesDeshabilitadosSet.clear();
+
+        // Mapear departamentos deshabilitados desde la respuesta optimizada
+        if (Array.isArray(residentesData)) {
+            residentesData.forEach(d => {
+                if (d.estado_dep === 'Deshabilitado' || d.estado === 'Deshabilitado') {
+                    if (d.nomenclatura) nomenclaturasDeshabilitadasSet.add(String(d.nomenclatura).trim().toUpperCase());
+                    let numDep = String(d.dep || d.numero_dep || '').trim();
+                    if (numDep) departamentosDeshabilitadosSet.add(numDep);
                 }
-                if (configRes.cajones) {
-                    configRes.cajones.forEach(c => {
-                        if (c.estado === 'Deshabilitado') {
-                            let nombreC = String(c.nombre_cajon).trim().toLowerCase();
-                            cajonesDeshabilitadosSet.add(nombreC);
-                            cajonesDeshabilitadosSet.add(nombreC.replace('cajón ', '').replace('cajon ', '').replace('cajón', '').replace('cajon', ''));
-                        }
-                    });
-                }
-            }
-        } catch (err) {
-            console.error("No se pudieron cargar los estados de configuración:", err);
+            });
         }
 
-        let response = await fetch('../API/api_residentes.php');
-        residentesData = await response.json();
+        // Mapear cajones deshabilitados
+        if (catResp && catResp.ok) {
+            try {
+                let catData = await catResp.json();
+                if (catData && catData.cajones_deshabilitados) {
+                    catData.cajones_deshabilitados.forEach(c => {
+                        let nombreC = String(c).trim().toLowerCase();
+                        cajonesDeshabilitadosSet.add(nombreC);
+                        cajonesDeshabilitadosSet.add(nombreC.replace('cajón ', '').replace('cajon ', '').replace('cajón', '').replace('cajon', ''));
+                    });
+                }
+            } catch (errCat) {
+                console.warn("Aviso al procesar catálogo de cajones deshabilitados:", errCat);
+            }
+        }
         
         actualizarOpcionesFiltros();
         renderTabla();
@@ -52,7 +77,7 @@ async function cargarResidentesDesdeBD() {
         actualizarBadgeSidebarYNotificaciones();
     } catch (error) {
         console.error("Error al conectar con la base de datos:", error);
-        mostrarNotificacion('Error crítico: Falló la conexión con el servidor al cargar datos.', 'error');
+        mostrarNotificacion('No se pudo conectar con el servidor. Revisa la red e inténtalo de nuevo.', 'error');
     }
 }
 
@@ -252,24 +277,41 @@ function renderTabla(datos) {
             ? `<span class="badge-status status-green" title="${item.cajon || 'Con Auto'}">🚗 ${item.cajon || 'Si'}</span>` 
             : `<span style="color: var(--text-secondary); font-size: 0.85rem;">🚫 No</span>`;
 
+        let estaBloqueadoPorOtro = item.bloqueado_por && item.bloqueado_por_id && (parseInt(item.bloqueado_por_id) !== usuarioActualId);
+        let badgeBloqueo = estaBloqueadoPorOtro 
+            ? `<span class="badge-lock" title="Modificando actualmente: ${item.bloqueado_por}">🔒 En edición (${item.bloqueado_por})</span>` 
+            : '';
+
+        let btnEditarHtml = '';
+        if (puedeEditarResidentes) {
+            if (estaBloqueadoPorOtro) {
+                btnEditarHtml = `<button class="btn-table" onclick="editarResidente(${indexOriginal})" style="border-color: #f59e0b; background: rgba(245, 158, 11, 0.1);" title="Modificado actualmente por ${item.bloqueado_por}">🔒</button>`;
+            } else {
+                btnEditarHtml = `<button class="btn-table" onclick="editarResidente(${indexOriginal})" title="Editar">✏️</button>`;
+            }
+        }
+
         tbody.innerHTML += `
             <tr>
                 <td><input type="checkbox" class="row-checkbox" value="${indexOriginal}"></td>
-                <td><strong>${item.nombre}</strong></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <strong>${item.nombre}</strong>
+                        ${badgeBloqueo}
+                    </div>
+                </td>
                 <td>${item.genero || 'N/A'}</td>
                 <td>${badgeVehiculo}</td>
                 <td>${item.nivel || 'N/A'}</td>
                 <td>Dep. ${item.dep || 'N/A'}</td>
-                <td><span style="font-weight:700; color:var(--accent-color);">${item.nomenclatura || 'N/A'}</span></td>
+                <td><span class="unit-tag">${item.nomenclatura || 'N/A'}</span></td>
                 <td>${item.fecha_move_in || 'N/A'}</td>
                 <td><span class="badge-date ${bgDateClass}">${item.fecha_move_out || 'N/A'}</span></td>
                 <td><span class="badge-status ${badgeStatusClass}">${item.status}</span></td>
                 <td style="text-align: center;">
                     <div style="display: flex; gap: 4px; justify-content: center;">
                          <button class="btn-table btn-details" onclick="verDetalles(${indexOriginal})" title="Ver detalles">👁️</button> 
-                            ${puedeEditarResidentes ? `
-                        <button class="btn-table" onclick="editarResidente(${indexOriginal})" title="Editar">✏️</button>
-                    ` : ''}
+                         ${btnEditarHtml}
                         <button class="btn-table" onclick="generarCredencialResidente(${indexOriginal})" title="Imprimir Credencial / Expediente">🪪</button>
                     </div>
                 </td>
@@ -427,7 +469,7 @@ function verDetalles(index) {
             <p><strong>Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'} (${res.nomenclatura || 'N/A'})</p>
             <p><strong>Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
             <p><strong>Contrato:</strong> ${res.fecha_move_in || 'N/A'} al ${res.fecha_move_out || 'N/A'}</p>
-            <p><strong>Restante:</strong> <span style="color:var(--accent-color); font-weight:700;">${textoRestante}</span></p>
+            <p><strong>Restante:</strong> <span class="unit-tag">${textoRestante}</span></p>
         </div>
     `;
     document.getElementById('modalDetallesOverlay').style.display = 'flex';
@@ -580,11 +622,41 @@ function abrirModalCrear() {
     document.getElementById('modalOverlay').style.display = 'flex';
 }
 
-function editarResidente(index) {
+async function editarResidente(index) {
     let res = residentesFiltradosMemoria[index];
+    if (!res) return;
     
     // Guardamos la nomenclatura actual para asegurarnos de que nunca viaje vacía
     nomenclaturaEditarActual = res.nomenclatura || "";
+
+    // 1. GESTIÓN DE CONCURRENCIA: Intentar adquirir el bloqueo del expediente
+    if (nomenclaturaEditarActual) {
+        try {
+            let respBloqueo = await fetch('../API/api_bloqueos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'bloquear', nomenclatura: nomenclaturaEditarActual })
+            });
+            let dataBloqueo = await respBloqueo.json();
+
+            if (dataBloqueo.status === 'locked') {
+                mostrarModalBloqueo(res.nombre, nomenclaturaEditarActual, dataBloqueo.bloqueado_por);
+                return;
+            }
+
+            if (dataBloqueo.status !== 'success') {
+                mostrarNotificacion(dataBloqueo.message || 'No fue posible bloquear el expediente.', 'error');
+                return;
+            }
+
+            // Bloqueo adquirido exitosamente
+            nomenclaturaBloqueadaActiva = nomenclaturaEditarActual;
+            iniciarLatidoBloqueo(nomenclaturaEditarActual);
+        } catch (err) {
+            console.error("Error al consultar bloqueo:", err);
+        }
+    }
+
     let nomField = document.getElementById('inpNomenclaturaModal');
     if (nomField) nomField.value = nomenclaturaEditarActual;
     
@@ -694,7 +766,73 @@ function evaluarCambioUnidad() {
     }
 }
 
-function cerrarModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+function cerrarModal() { 
+    document.getElementById('modalOverlay').style.display = 'none'; 
+    liberarBloqueoActual();
+    setTimeout(() => { cargarResidentesDesdeBD(); }, 300);
+}
+
+function mostrarModalBloqueo(nombreResidente, nomenclatura, bloqueadoPor) {
+    let detalleEl = document.getElementById('txtBloqueoDetalle');
+    if (detalleEl) {
+        detalleEl.innerHTML = `El expediente del residente <strong>${nombreResidente || 'Residente'}</strong> (<span style="color:var(--accent-color); font-weight:bold;">${nomenclatura}</span>) está siendo modificado actualmente por <strong>${bloqueadoPor || 'otro usuario'}</strong>.`;
+    }
+    let modal = document.getElementById('modalBloqueoOverlay');
+    if (modal) modal.style.display = 'flex';
+    mostrarNotificacion(`Expediente ${nomenclatura} en modificación por ${bloqueadoPor}`, 'error');
+}
+
+function cerrarModalBloqueo() {
+    let modal = document.getElementById('modalBloqueoOverlay');
+    if (modal) modal.style.display = 'none';
+}
+
+function iniciarLatidoBloqueo(nomenclatura) {
+    detenerLatidoBloqueo();
+    timerLatidoBloqueo = setInterval(async () => {
+        if (!nomenclaturaBloqueadaActiva) {
+            detenerLatidoBloqueo();
+            return;
+        }
+        try {
+            await fetch('../API/api_bloqueos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'heartbeat', nomenclatura: nomenclaturaBloqueadaActiva })
+            });
+        } catch(e) {}
+    }, 20000); // Latido cada 20 segundos para refrescar TTL de 60s
+}
+
+function detenerLatidoBloqueo() {
+    if (timerLatidoBloqueo) {
+        clearInterval(timerLatidoBloqueo);
+        timerLatidoBloqueo = null;
+    }
+}
+
+async function liberarBloqueoActual() {
+    detenerLatidoBloqueo();
+    if (nomenclaturaBloqueadaActiva) {
+        let nom = nomenclaturaBloqueadaActiva;
+        nomenclaturaBloqueadaActiva = null;
+        try {
+            await fetch('../API/api_bloqueos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'desbloquear', nomenclatura: nom })
+            });
+        } catch(e) {}
+    }
+}
+
+// Liberar bloqueo si el usuario cierra la ventana o recarga la página
+window.addEventListener('beforeunload', () => {
+    if (nomenclaturaBloqueadaActiva) {
+        let blob = new Blob([JSON.stringify({ action: 'desbloquear', nomenclatura: nomenclaturaBloqueadaActiva })], { type: 'application/json' });
+        navigator.sendBeacon('../API/api_bloqueos.php', blob);
+    }
+});
 
 let ultimoResidenteRegistrado = null;
 
@@ -837,7 +975,7 @@ async function guardarResidente() {
                 abrirModalOpcionesImpresion(payload);
             }
         } else { mostrarNotificacion('Error en la base de datos: ' + resultado.message, 'error'); }
-    } catch (error) { mostrarNotificacion('Error crítico: Falló la conexión con el servidor.', 'error'); }
+    } catch (error) { mostrarNotificacion('No se pudo conectar con el servidor. Revisa la red e inténtalo de nuevo.', 'error'); }
 }
 
 
@@ -1067,7 +1205,7 @@ async function ejecutarMoveOutConfirmado() {
             mostrarNotificacion('Error al procesar salida: ' + resultado.message, 'error'); 
         }
     } catch (error) { 
-        mostrarNotificacion('Error crítico: Falló la conexión con el servidor.', 'error'); 
+        mostrarNotificacion('No se pudo conectar con el servidor. Revisa la red e inténtalo de nuevo.', 'error'); 
     }
 }
 
@@ -1110,6 +1248,29 @@ window.onload = function() {
         if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarResidentesDesdeBD();
+
+    // Sincronización automática de estado y bloqueos para soportar múltiples usuarios concurrentes
+    setInterval(() => {
+        let modalEdicion = document.getElementById('modalOverlay');
+        let modalMoveOut = document.getElementById('modalMoveOutOverlay');
+        let modalDetalles = document.getElementById('modalDetallesOverlay');
+        let modalBloqueo = document.getElementById('modalBloqueoOverlay');
+        // No refrescar la tabla si el usuario tiene un modal interactivo abierto
+        if ((!modalEdicion || modalEdicion.style.display === 'none') && 
+            (!modalMoveOut || modalMoveOut.style.display === 'none') &&
+            (!modalDetalles || modalDetalles.style.display === 'none') &&
+            (!modalBloqueo || modalBloqueo.style.display === 'none')) {
+            cargarResidentesDesdeBD();
+        }
+    }, 30000);
+
+    // Actualizar al regresar a la pestaña
+    window.addEventListener('focus', () => {
+        let modalEdicion = document.getElementById('modalOverlay');
+        if (!modalEdicion || modalEdicion.style.display === 'none') {
+            cargarResidentesDesdeBD();
+        }
+    });
 };
 
 function abrirModalDevMasivo(tipoPorDefecto = 'residentes') {

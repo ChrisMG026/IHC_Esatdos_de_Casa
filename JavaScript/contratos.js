@@ -9,6 +9,78 @@ let paginaActualContratos = 1;
 let filasPorPaginaContratos = 25;
 let mostrarTodoContratos = false;
 
+// ── Sistema de bloqueo concurrente (Contratos) ──────────────────────────────
+let ctUsuarioId = 0;
+let ctUsuarioNombre = '';
+let ctNomBloqueada = null;
+let ctTimerLatido = null;
+
+async function ctInicializarUsuario() {
+    if (ctUsuarioId > 0) return;
+    try {
+        let r = await fetch('../API/api_sesion.php');
+        let d = await r.json();
+        if (d && d.logueado) {
+            ctUsuarioId = d.id_usuario || 0;
+            ctUsuarioNombre = d.nombre || '';
+        }
+    } catch(e) {}
+}
+
+function mostrarModalBloqueoContratos(label, nomenclatura, bloqueadoPor) {
+    let det = document.getElementById('txtBloqueoDetalle');
+    if (det) det.innerHTML = `El contrato de <strong>${label || nomenclatura}</strong> (<span style="color:var(--accent-color);font-weight:bold;">${nomenclatura}</span>) está siendo modificado actualmente por <strong>${bloqueadoPor || 'otro usuario'}</strong>.`;
+    let m = document.getElementById('modalBloqueoOverlay');
+    if (m) m.style.display = 'flex';
+    mostrarNotificacion(`Contrato ${nomenclatura} en modificación por ${bloqueadoPor}`, 'error');
+}
+
+function cerrarModalBloqueoContratos() {
+    let m = document.getElementById('modalBloqueoOverlay');
+    if (m) m.style.display = 'none';
+}
+
+function ctIniciarLatido(nomenclatura) {
+    ctDetenerLatido();
+    ctTimerLatido = setInterval(async () => {
+        if (!ctNomBloqueada) { ctDetenerLatido(); return; }
+        try {
+            await fetch('../API/api_bloqueos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'heartbeat', nomenclatura: ctNomBloqueada })
+            });
+        } catch(e) {}
+    }, 20000);
+}
+
+function ctDetenerLatido() {
+    if (ctTimerLatido) { clearInterval(ctTimerLatido); ctTimerLatido = null; }
+}
+
+async function ctLiberarBloqueo() {
+    ctDetenerLatido();
+    if (ctNomBloqueada) {
+        let nom = ctNomBloqueada;
+        ctNomBloqueada = null;
+        try {
+            await fetch('../API/api_bloqueos.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'desbloquear', nomenclatura: nom })
+            });
+        } catch(e) {}
+    }
+}
+
+window.addEventListener('beforeunload', () => {
+    if (ctNomBloqueada) {
+        let blob = new Blob([JSON.stringify({ action: 'desbloquear', nomenclatura: ctNomBloqueada })], { type: 'application/json' });
+        navigator.sendBeacon('../API/api_bloqueos.php', blob);
+    }
+});
+// ────────────────────────────────────────────────────────────────────────────
+
 async function cargarContratosDesdeBD() {
     try {
         let response = await fetch('../API/api_contratos.php');
@@ -154,7 +226,7 @@ async function ejecutarMoveOutConfirmado() {
             mostrarNotificacion('Error al procesar salida: ' + resultado.message, 'error'); 
         }
     } catch (error) { 
-        mostrarNotificacion('Error crítico: Falló la conexión con el servidor.', 'error'); 
+        mostrarNotificacion('No se pudo conectar con el servidor. Revisa la red e inténtalo de nuevo.', 'error'); 
     }
 }
 
@@ -346,9 +418,31 @@ function filtrarPorChip(tipo, el) {
     aplicarFiltrosContratos();
 }
 
-function abrirModalRenovar(nomenclatura) {
+async function abrirModalRenovar(nomenclatura) {
+    await ctInicializarUsuario();
     contratoSeleccionado = contratosData.find(c => c.nomenclatura === nomenclatura);
     if (!contratoSeleccionado) return;
+
+    // Verificar bloqueo de otro usuario
+    try {
+        let resp = await fetch(`../API/api_bloqueos.php?action=verificar&nomenclatura=${encodeURIComponent(nomenclatura)}`);
+        let d = await resp.json();
+        if (d.bloqueado && !d.es_propio) {
+            mostrarModalBloqueoContratos(contratoSeleccionado.nombre_residente, nomenclatura, d.bloqueado_por);
+            return;
+        }
+    } catch(e) {}
+
+    // Adquirir bloqueo
+    try {
+        await fetch('../API/api_bloqueos.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'bloquear', nomenclatura })
+        });
+        ctNomBloqueada = nomenclatura;
+        ctIniciarLatido(nomenclatura);
+    } catch(e) {}
 
     document.getElementById('renovarResidenteInfo').innerText = `${contratoSeleccionado.nombre_residente} (${contratoSeleccionado.nomenclatura})`;
     document.getElementById('inpNuevaRenta').value = contratoSeleccionado.renta;
@@ -452,6 +546,7 @@ function actualizarNomenclaturaRenov() {
 function cerrarModalRenovar() {
     document.getElementById('modalRenovarOverlay').style.display = 'none';
     contratoSeleccionado = null;
+    ctLiberarBloqueo(); // Liberar bloqueo al cancelar / cerrar
 }
 
 async function guardarRenovacion() {
@@ -499,6 +594,7 @@ async function guardarRenovacion() {
         let res = await response.json();
         if (res.status === 'success') {
             mostrarNotificacion('Renovación guardada correctamente.', 'success');
+            await ctLiberarBloqueo(); // Liberar bloqueo tras guardar exitosamente
             cerrarModalRenovar();
             await cargarContratosDesdeBD();
         } else {
@@ -510,8 +606,30 @@ async function guardarRenovacion() {
 }
 
 async function abrirModalAuto(nomenclatura) {
+    await ctInicializarUsuario();
     contratoSeleccionado = contratosData.find(c => c.nomenclatura === nomenclatura);
     if (!contratoSeleccionado) return;
+
+    // Verificar bloqueo de otro usuario
+    try {
+        let respVerif = await fetch(`../API/api_bloqueos.php?action=verificar&nomenclatura=${encodeURIComponent(nomenclatura)}`);
+        let dv = await respVerif.json();
+        if (dv.bloqueado && !dv.es_propio) {
+            mostrarModalBloqueoContratos(contratoSeleccionado.nombre_residente, nomenclatura, dv.bloqueado_por);
+            return;
+        }
+    } catch(e) {}
+
+    // Adquirir bloqueo
+    try {
+        await fetch('../API/api_bloqueos.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'bloquear', nomenclatura })
+        });
+        ctNomBloqueada = nomenclatura;
+        ctIniciarLatido(nomenclatura);
+    } catch(e) {}
 
     document.getElementById('autoResidenteInfo').innerText = `${contratoSeleccionado.nombre_residente} (${contratoSeleccionado.nomenclatura})`;
     document.getElementById('inpMotivoAutoModal').value = '';
@@ -597,6 +715,7 @@ function evaluarOpcionAuto() {
 function cerrarModalAuto() {
     document.getElementById('modalAutoOverlay').style.display = 'none';
     contratoSeleccionado = null;
+    ctLiberarBloqueo(); // Liberar bloqueo al cancelar / cerrar
 }
 
 async function guardarVehiculo() {
@@ -658,6 +777,7 @@ async function enviarDatosVehiculo(payload) {
         let res = await response.json();
         if (res.status === 'success') {
             mostrarNotificacion(res.message, 'success');
+            await ctLiberarBloqueo(); // Liberar bloqueo tras guardar exitosamente
             cerrarModalAuto();
             await cargarContratosDesdeBD();
         } else {

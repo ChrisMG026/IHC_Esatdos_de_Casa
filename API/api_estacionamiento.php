@@ -2,6 +2,8 @@
 require_once 'auth_middleware.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requerir_permiso('editar_admin_parking');
+} else {
+    liberar_bloqueo_sesion();
 }
 header('Content-Type: application/json; charset=utf-8');
 

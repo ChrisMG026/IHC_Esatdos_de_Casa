@@ -31,4 +31,11 @@ function requerir_permiso($permiso_necesario) {
         exit;
     }
 }
+// Función para liberar el bloqueo de archivo de sesión de PHP
+// Permite que peticiones simultáneas del mismo o diferentes usuarios corran en paralelo
+function liberar_bloqueo_sesion() {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+}
 ?>

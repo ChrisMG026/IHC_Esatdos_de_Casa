@@ -26,12 +26,25 @@ try {
 
     $fechaHoy = date('Y-m-d');
     $nombresBorrados = []; // Arreglo para la auditoría
+    $id_user = (int)$_SESSION['id_usuario'];
+
+    // Validar bloqueos previos
+    $stmtLockCheck = $conn->prepare("SELECT nombre_usuario FROM bloqueos_expedientes WHERE nomenclatura = ? AND id_usuario != ? AND ultimo_latido >= DATE_SUB(NOW(), INTERVAL 60 SECOND) LIMIT 1");
+    $stmtDelLock = $conn->prepare("DELETE FROM bloqueos_expedientes WHERE nomenclatura = ?");
 
     foreach ($data['registros'] as $item) {
         $nom = trim($item['nomenclatura']);
         $motivo = trim($item['motivo_salida'] ?? 'Fin de contrato / Salida regular');
 
         if (!empty($nom)) {
+            // Verificar si otro usuario lo tiene bloqueado
+            $stmtLockCheck->bind_param("si", $nom, $id_user);
+            $stmtLockCheck->execute();
+            $lockRes = $stmtLockCheck->get_result()->fetch_assoc();
+            if ($lockRes) {
+                throw new Exception("No es posible procesar salida: la unidad {$nom} está siendo modificada actualmente por {$lockRes['nombre_usuario']}.");
+            }
+
             // A. Buscar información actual
             $stmtSelect->bind_param("s", $nom);
             $stmtSelect->execute();
@@ -45,10 +58,11 @@ try {
             $stmtInsertHist->bind_param("sssss", $nom, $nombreRes, $moveInDate, $fechaHoy, $motivo);
             $stmtInsertHist->execute();
 
-            // C. Eliminar de las 3 tablas activas
+            // C. Eliminar de las 3 tablas activas y liberar bloqueos
             $stmtDel1->bind_param("s", $nom); $stmtDel1->execute();
             $stmtDel2->bind_param("s", $nom); $stmtDel2->execute();
             $stmtDel3->bind_param("s", $nom); $stmtDel3->execute();
+            $stmtDelLock->bind_param("s", $nom); $stmtDelLock->execute();
         }
     }
 

@@ -1,6 +1,27 @@
 // Tipografía de las gráficas alineada con el nuevo diseño
 if (window.Chart) { Chart.defaults.font.family = "'Plus Jakarta Sans', 'Segoe UI', sans-serif"; }
 
+let datosDashboard = null;
+
+// Colores de texto y líneas de las gráficas según el tema activo (claro u oscuro)
+function ajustarColoresGraficas() {
+    let estilos = getComputedStyle(document.body);
+    Chart.defaults.color = estilos.getPropertyValue('--text-secondary').trim() || '#94a3b8';
+    Chart.defaults.borderColor = estilos.getPropertyValue('--border-color').trim() || 'rgba(148,163,184,0.2)';
+}
+
+function pintarDashboard(res) {
+    // Primero lo esencial (cifras y movimientos); las gráficas dependen de la librería Chart.js
+    renderKPIs(res.kpis);
+    renderUltimosMovimientos(res.ultimos_movimientos);
+    if (!window.Chart) return;
+    ajustarColoresGraficas();
+    renderChartNiveles(res.niveles);
+    renderChartContratos(res.kpis);
+    renderChartGeneroGeneral(res.genero_general);
+    renderChartGeneroNivel(res.genero_nivel);
+}
+
 let chartNivelesInstancia = null;
 let chartContratosInstancia = null;
 let chartGeneroGeneralInstancia = null;
@@ -12,12 +33,8 @@ async function cargarDashboard() {
         let res = await response.json();
 
         if (res.status === 'success') {
-            renderKPIs(res.kpis);
-            renderChartNiveles(res.niveles);
-            renderChartContratos(res.kpis);
-            renderChartGeneroGeneral(res.genero_general);
-            renderChartGeneroNivel(res.genero_nivel);
-            renderUltimosMovimientos(res.ultimos_movimientos);
+            datosDashboard = res;
+            pintarDashboard(res);
         }
     } catch (e) {
         console.error("Error al cargar dashboard:", e);
@@ -31,11 +48,14 @@ function renderKPIs(kpis) {
     document.getElementById('kpiIngresos').innerText = kpis.ingreso_total.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
 
     document.getElementById('kpiPorVencer').innerText = kpis.por_vencer;
-    document.getElementById('kpiVencidosSub').innerText = `${kpis.vencidos} contratos vencidos`;
+    document.getElementById('kpiVencidosSub').innerText = kpis.vencidos === 1 ? '1 contrato vencido' : `${kpis.vencidos} contratos vencidos`;
 
     let pctEstacionamiento = kpis.total_cajones > 0 ? Math.round((kpis.cajones_ocupados / kpis.total_cajones) * 100) : 0;
     document.getElementById('kpiEstacionamiento').innerText = `${pctEstacionamiento}%`;
     document.getElementById('kpiCajonesSub').innerText = `${kpis.cajones_ocupados} de ${kpis.total_cajones} cajones`;
+    document.getElementById('meterOcupacion')?.style.setProperty('--pct', kpis.porcentaje_ocupacion + '%');
+    document.getElementById('meterEstacionamiento')?.style.setProperty('--pct', pctEstacionamiento + '%');
+    document.getElementById('kpiPorVencer').closest('.stat-card')?.classList.toggle('is-alert', kpis.por_vencer > 0 || kpis.vencidos > 0);
 }
 
 function renderChartNiveles(niveles) {
@@ -59,7 +79,7 @@ function renderChartNiveles(niveles) {
                     borderRadius: 6
                 },
                 {
-                    label: 'Total Espacios',
+                    label: 'Total de espacios',
                     data: totales,
                     backgroundColor: 'rgba(148, 163, 184, 0.38)',
                     borderRadius: 6
@@ -69,10 +89,10 @@ function renderChartNiveles(niveles) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            plugins: { legend: { labels: { color: Chart.defaults.color } } },
             scales: {
-                x: { ticks: { color: '#94a3b8' } },
-                y: { ticks: { color: '#94a3b8' }, beginAtZero: true }
+                x: { ticks: { color: Chart.defaults.color } },
+                y: { ticks: { color: Chart.defaults.color }, beginAtZero: true }
             }
         }
     });
@@ -89,7 +109,7 @@ function renderChartContratos(kpis) {
     chartContratosInstancia = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Vigentes', 'Por vencer (30d)', 'Vencidos'],
+            labels: ['Vigentes', 'Por vencer (30 días)', 'Vencidos'],
             datasets: [{
                 data: [vigentes, kpis.por_vencer, kpis.vencidos],
                 backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
@@ -99,7 +119,7 @@ function renderChartContratos(kpis) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+            plugins: { legend: { position: 'bottom', labels: { color: Chart.defaults.color } } }
         }
     });
 }
@@ -123,7 +143,7 @@ function renderChartGeneroGeneral(genero) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: { 
-                legend: { position: 'bottom', labels: { color: '#94a3b8' } } 
+                legend: { position: 'bottom', labels: { color: Chart.defaults.color } } 
             }
         }
     });
@@ -160,10 +180,10 @@ function renderChartGeneroNivel(generoNivel) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            plugins: { legend: { labels: { color: Chart.defaults.color } } },
             scales: {
-                x: { ticks: { color: '#94a3b8' } },
-                y: { ticks: { color: '#94a3b8' }, beginAtZero: true }
+                x: { ticks: { color: Chart.defaults.color } },
+                y: { ticks: { color: Chart.defaults.color }, beginAtZero: true }
             }
         }
     });
@@ -187,7 +207,7 @@ function renderUltimosMovimientos(movimientos) {
             <tr>
                 <td>${badge}</td>
                 <td><strong>${m.residente}</strong></td>
-                <td><span style="font-weight:700; color:var(--accent-color);">${m.nomenclatura}</span></td>
+                <td><span class="unit-tag">${m.nomenclatura}</span></td>
                 <td>${m.fecha}</td>
             </tr>
         `;
@@ -200,6 +220,7 @@ function toggleDarkMode() {
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
     document.getElementById('themeIcon').innerText = esOscuro ? '☀️' : '🌙';
     document.getElementById('themeText').innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
+    if (datosDashboard) pintarDashboard(datosDashboard);
 }
 
 window.onload = function() {
