@@ -602,11 +602,15 @@ async function guardarClave(numDep) {
 }
 
 function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    let esOscuro = document.body.classList.contains('dark-mode');
+    let body = document.body;
+    body.classList.toggle('dark-mode');
+    let esOscuro = body.classList.contains('dark-mode');
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
-    document.getElementById('themeIcon').innerText = esOscuro ? '☀️' : '🌙';
-    document.getElementById('themeText').innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
+    
+    let icon = document.getElementById('themeIcon');
+    let text = document.getElementById('themeText');
+    if (icon) icon.innerText = esOscuro ? '☀️' : '🌙';
+    if (text) text.innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
 window.onload = function() {

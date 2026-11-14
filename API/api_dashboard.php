@@ -9,8 +9,11 @@ $totalEspacios = $conn->query("SELECT COUNT(*) as total FROM departamentos")->fe
 $ocupados = $conn->query("SELECT COUNT(*) as total FROM residentes WHERE nombre_completo IS NOT NULL AND TRIM(nombre_completo) != ''")->fetch_assoc()['total'];
 $porcentajeOcupacion = $totalEspacios > 0 ? round(($ocupados / $totalEspacios) * 100, 1) : 0;
 
-$ingresoTotal = $conn->query("SELECT SUM(renta) as total FROM contrato")->fetch_assoc()['total'] ?? 0;
-
+$resIngreso = $conn->query("SELECT SUM(renta) as total FROM contrato");
+$ingresoTotal = 0;
+if ($resIngreso && $rowIngreso = $resIngreso->fetch_assoc()) {
+    $ingresoTotal = $rowIngreso['total'] ?? 0;
+}
 $porVencer = $conn->query("SELECT COUNT(*) as total FROM contrato WHERE DATEDIFF(fecha_move_out, CURDATE()) BETWEEN 0 AND 30")->fetch_assoc()['total'];
 $vencidos = $conn->query("SELECT COUNT(*) as total FROM contrato WHERE DATEDIFF(fecha_move_out, CURDATE()) < 0")->fetch_assoc()['total'];
 
