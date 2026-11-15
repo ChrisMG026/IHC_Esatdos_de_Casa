@@ -1,0 +1,468 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Gestión de Contratos</title>
+    <!-- FontAwesome para los íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/styles.css?v=5.3">
+    <script>
+        (function() {
+          if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark-mode-preload');
+                // Si el body ya existe (raro en el head, pero por seguridad), le añadimos la clase
+                if (document.body) {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+        })();
+    </script>
+    <!-- Librería SheetJS para Exportación a Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside>
+        <div>
+            <div class="brand">
+                <div class="brand-icon">R</div>
+                <span>RESIDENTE HUB</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-item">Dashboard</a></li>
+                <li><a href="index.html" class="nav-item">Residentes</a></li>
+                <li>
+                    <a href="Contratos.html" class="nav-item active" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Contratos</span>
+                        <span id="sidebarBadgeContratosAlertas" style="background: #ef4444; color: #fff; font-size: 0.75rem; font-weight: bold; padding: 2px 7px; border-radius: 10px; display: none;">0</span>
+                    </a>
+                </li>
+                <li><a href="Estacionamiento.html" class="nav-item">Estacionamiento</a></li>
+                <li><a href="Reportes.html" class="nav-item">Reportes</a></li>
+                <li><a href="Configuraciones.html" class="nav-item">Configuraciones</a></li>
+                <li id="menuAdminUsuarios" style="display: none;"><a href="AdminUsuarios.html" class="nav-item">Administración</a></li>  
+            </ul>
+            <li class="nav-logout">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">Cerrar sesión
+                </a>
+            </li>
+        </div>
+    </aside>
+
+    <!-- WRAPPER PRINCIPAL -->
+    <div class="main-wrapper">
+        <header>
+            <div class="search-container">
+                <span style="color: var(--text-secondary);">🔍</span>
+                <input type="text" id="searchInput" placeholder="Buscar por residente, departamento o nomenclatura..." oninput="aplicarFiltrosContratos()">
+                
+                <div class="filter-dropdowns">
+                    <select id="filterTipoContrato" onchange="aplicarFiltrosContratos()">
+                        <option value="">Tipo de Contrato</option>
+                        <option value="6 meses">6 meses</option>
+                        <option value="12 meses">12 meses</option>
+                    </select>
+
+                    <select id="filterEstadoVencimiento" onchange="aplicarFiltrosContratos()">
+                        <option value="">Estado de Vencimiento</option>
+                        <option value="Vigente">Vigentes</option>
+                        <option value="Por vencer">Por Vencer (≤ 30 días)</option>
+                        <option value="Vencido">Vencidos</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="user-actions" style="position: relative;">
+                <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
+                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                </button>
+
+                <!-- BOTÓN DE NOTIFICACIONES CON CAMPANA Y DROPDOWN -->
+                <div style="position: relative;">
+                    <button id="btnNotificaciones" onclick="togglePanelNotificaciones()" style="background: transparent; border: none; cursor: pointer; font-size: 1.2rem; position: relative;">
+                        🔔
+                        <span id="headerBadgeNotif" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 0.7rem; font-weight: bold; padding: 2px 5px; border-radius: 50%; display: none;">0</span>
+                    </button>
+
+                    <!-- PANEL DESPLEGABLE DE NOTIFICACIONES -->
+                    <div id="panelNotificaciones" style="display: none; position: absolute; right: 0; top: 38px; width: 340px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 1000; padding: 14px;">
+                        <div class="modal-head">
+                            <strong style="font-size: 0.95rem; color: var(--text-primary);">Contratos Pendientes / Vencidos</strong>
+                            <span onclick="togglePanelNotificaciones()" style="cursor: pointer; color: var(--text-secondary); font-size: 1.1rem;">&times;</span>
+                        </div>
+                        <div id="listaNotificacionesContenido" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Llenado dinámico -->
+                        </div>
+                    </div>
+                </div>
+
+                <span id="nombreUsuarioHeader">👤 Cargando...</span>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="page-title-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>Control y Gestión de Contratos</h1>
+                <div class="action-buttons" style="display: flex; gap: 10px; align-items: center;">   
+                    <button class="btn-primary" onclick="abrirModalDevMasivo('residentes')" title="Herramientas de Desarrollador">
+                         Carga masiva (desarrollo)
+                    </button>
+                    <button class="btn-success" onclick="exportarResidentesExcel()">
+                        Exportar a Excel
+                    </button>
+                    <button class="btn-movein" onclick="abrirModalCrear()">Registrar move-in</button>
+                    <button class="btn-moveout" onclick="procesarSalidaSeleccionados()">Registrar move-out</button>
+                </div>
+            </div>
+
+            <!-- CHIPS DE ACCESO RÁPIDO -->
+            <div class="chips-container">
+                <button class="chip-btn active" id="chipTodos" onclick="filtrarPorChip('todos', this)">Todos</button>
+                <button class="chip-btn" onclick="filtrarPorChip('por_vencer', this)">⚠️ Próximos a Vencer (≤30 días)</button>
+                <button class="chip-btn" onclick="filtrarPorChip('vencidos', this)">🚨 Vencidos</button>
+                <button class="chip-btn" onclick="filtrarPorChip('renta_alta', this)">💎 Rentas > $10,000</button>
+                <button class="chip-btn" onclick="filtrarPorChip('12_meses', this)">📅 12 Meses</button>
+                <button class="chip-btn" onclick="filtrarPorChip('6_meses', this)">⏳ 6 Meses</button>
+            </div>
+
+            <!-- TARJETAS FINANCIERAS -->
+            <div class="stats-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="label">Total Contratos</div>
+                    <div class="val" id="statTotalContratos">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Ingreso Mensual Proyectado</div>
+                    <div class="val" id="statIngresoTotal" style="color: #10b981;">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Renta Promedio por Unidad</div>
+                    <div class="val" id="statRentaPromedio" style="color: var(--accent-color);">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Por Vencer / Vencidos</div>
+                    <div class="val" id="statPorVencer" style="color: #ef4444;">0</div>
+                </div>
+            </div>
+
+            <!-- TABLA PRINCIPAL DE CONTRATOS -->
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ubicación ▴</th>
+                            <th>Nomenclatura</th>
+                            <th>Nombre Residente</th>
+                            <th>Contacto</th>
+                            <th>Vehículo</th>
+                            <th>Renta (MXN)</th>
+                            <th>Vigencia Contrato</th>
+                            <th>Duración</th>
+                            <th>Estado Vencimiento</th>
+                            <th style="text-align: center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaContratosBody"></tbody>
+                </table>
+            </div>
+            <!-- BARRA DE PAGINACIÓN CONTRATOS -->
+            <div class="pagination-bar">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>Página:</span>
+                    <select class="field-sm" id="selectPaginaContratos" onchange="cambiarPaginaDirectaContratos(this.value)"></select>
+                    
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn-table" onclick="cambiarPaginaRelativeContratos(-1)" title="Página anterior">❮</button>
+                        <button class="btn-table" onclick="cambiarPaginaRelativeContratos(1)" title="Página siguiente">❯</button>
+                    </div>
+
+                    <span style="border-left: 1px solid var(--border-color); height: 18px; margin: 0 4px;"></span>
+
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" id="chkMostrarTodoContratos" onchange="toggleMostrarTodoContratos(this.checked)">
+                        Mostrar todo
+                    </label>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span id="textoRangoFilasContratos" style="color: var(--text-secondary); font-size: 0.82rem;">Mostrando 0 - 0 de 0</span>
+                    
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>Número de filas:</span>
+                        <select class="field-sm" id="selectFilasPorPaginaContratos" onchange="cambiarFilasPorPaginaContratos(this.value)">
+                            <option value="15">15</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <span>Versión 0.2.5 - Control de Renovación, Unidades y Estacionamiento</span>
+            <span>Copyright © Amante 2026</span>
+        </footer>
+    </div>
+
+    <!-- MODAL DE RENOVACIÓN DE CONTRATO -->
+    <div id="modalRenovarOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 580px; width: 92%; padding: 24px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-head">
+                <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">Renovación de Contrato
+                </h3>
+                <span onclick="cerrarModalRenovar()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <p id="renovarResidenteInfo" style="font-weight: bold; color: var(--accent-color); font-size: 1.05rem; margin-bottom: 14px;"></p>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Extensión de plazo:</label>
+                    <select class="field" id="inpPlazoExtension" onchange="calcularNuevaFechaSalidaModal()">
+                        <option value="12">Renovar por 12 meses</option>
+                        <option value="6">Renovar por 6 meses</option>
+                    </select>
+                </div>
+
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 600;">Nueva Fecha Move-Out:</label>
+                        <input class="field" type="date" id="inpNuevaFechaOut">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 600;">Monto Renta Mensual (MXN):</label>
+                        <input class="field" type="number" id="inpNuevaRenta">
+                    </div>
+                </div>
+
+                <div style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                    <label style="font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">¿Desea cambiar de Departamento / Unidad en esta renovación?</label>
+                    <select class="field" id="inpCambiaUnidadRenovacion" onchange="evaluarCambioUnidadRenovacion()">
+                        <option value="NO">NO (Conservar departamento actual)</option>
+                        <option value="SI">SI (Asignar nueva unidad)</option>
+                    </select>
+                </div>
+
+                <div id="seccionNuevasOpcionesUnidad" style="display: none; background: var(--bg-main); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">Nivel:</label>
+                            <select class="field" id="inpNivelRenov" onchange="onNivelRenovChange()"><option value="">-- Seleccionar --</option></select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">No. Dep:</label>
+                            <select class="field" id="inpDepRenov" onchange="onDepRenovChange()"><option value="">-- Seleccionar --</option></select>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">Recámara:</label>
+                            <select class="field" id="inpRecamaraRenov" onchange="onRecamaraRenovChange()"></select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600;">Cama:</label>
+                            <select class="field" id="inpCamaRenov" onchange="actualizarNomenclaturaRenov()"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.85rem; font-weight: 600;">Nomenclatura Asignada (Nueva):</label>
+                        <input class="field" type="text" id="inpNomenclaturaRenov" readonly style="font-weight: bold;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-table" onclick="cerrarModalRenovar()" style="padding: 8px 16px;">Cancelar</button>
+                <button class="btn-table btn-success" onclick="guardarRenovacion()">Guardar Renovación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE GESTIÓN DE VEHÍCULO -->
+    <div id="modalAutoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 550px; width: 92%; padding: 24px;">
+            <div class="modal-head">
+                <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">Asignación / Gestión de Vehículo
+                </h3>
+                <span onclick="cerrarModalAuto()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <p id="autoResidenteInfo" style="font-weight: bold; color: var(--text-primary); margin-bottom: 14px;"></p>
+
+            <div style="margin-bottom: 14px;">
+                <label style="font-weight: 600; display: block; margin-bottom: 4px;">Acción de Vehículo:</label>
+                <select class="field" id="inpOpcionAuto" onchange="evaluarOpcionAuto()">
+                    <option value="ASIGNAR">Asignar / Editar Vehículo y Cajón</option>
+                    <option value="RETIRAR">Retirar Vehículo (Liberar Cajón)</option>
+                </select>
+            </div>
+
+            <div id="bloqueCamposAuto">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Cajón de Estacionamiento:</label>
+                        <select class="field" id="inpCajonAutoModal">
+                            <option value="">-- Seleccionar Cajón --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Modelo del Auto:</label>
+                        <input class="field" type="text" id="inpModeloAutoModal" placeholder="Ej. Nissan Versa 2022">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Color del Auto:</label>
+                        <input class="field" type="text" id="inpColorAutoModal" placeholder="Ej. Blanco / Gris">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Número de Tag:</label>
+                        <input class="field" type="text" id="inpTagAutoModal" placeholder="Ej. TAG-8849">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600;">Placas:</label>
+                    <input class="field" type="text" id="inpPlacasAutoModal" placeholder="Ej. XYZ-1234">
+                </div>
+            </div>
+            
+            <div style="margin-top: 14px; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600; color: #ef4444;">
+                    * Motivo del cambio / asignación (Requerido):
+                </label>
+                <input class="field" type="text" id="inpMotivoAutoModal" placeholder="Ej. Cambio de vehículo del residente / Asignación inicial">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-table" onclick="cerrarModalAuto()" style="padding: 8px 16px;">Cancelar</button>
+                <button class="btn-table btn-primary" id="btnGuardarAuto" onclick="guardarVehiculo()">Guardar Asignación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE HISTÓRICO -->
+    <div id="modalHistoricoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 680px; width: 92%; max-height: 80vh; display: flex; flex-direction: column; padding: 24px;">
+            <div class="modal-head">
+                <h3 style="margin: 0; color: var(--text-primary);">Histórico de Renovaciones y Cambios</h3>
+                <span onclick="cerrarModalHistorico()" style="cursor: pointer; font-size: 1.4rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <div id="historicoContenido" style="overflow-y: auto; max-height: 52vh; display: flex; flex-direction: column; gap: 12px;"></div>
+
+            <div style="text-align: right; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <button class="btn-table" onclick="cerrarModalHistorico()" style="padding: 8px 16px;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMACIÓN DE MOVE-OUT DIRECTO DESDE NOTIFICACIÓN -->
+    <div id="modalMoveOutOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 700px; width: 92%; max-height: 88vh; display: flex; flex-direction: column; padding: 28px;">
+            <div class="modal-header modal-head">
+                <h3 style="margin: 0; font-size: 1.25rem; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                    ⚠️ Confirmación de Move-Out
+                </h3>
+                <span onclick="cerrarModalMoveOut()" style="cursor: pointer; font-size: 1.5rem; color: var(--text-secondary);">&times;</span>
+            </div>
+
+            <p style="margin-bottom: 14px; font-size: 0.95rem; color: var(--text-secondary);">
+                ¿Estás seguro de registrar la salida del residente? Se eliminará permanentemente su registro de <strong>Residentes, Contrato y Estacionamiento</strong>.
+            </p>
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-weight: 600; font-size: 0.88rem; color: #ef4444; display: block; margin-bottom: 6px;">
+                    * Motivo de Salida (Requerido para la bitácora):
+                </label>
+                <input class="field" type="text" id="inpMotivoMoveOut" placeholder="Ej. Fin de contrato, Graduación...">
+            </div>
+
+            <div id="moveoutDetallesContenedor" style="overflow-y: auto; max-height: 45vh; display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; padding-right: 4px;"></div>
+
+            <div class="modal-actions">
+                <button class="btn-table" onclick="cerrarModalMoveOut()" style="padding: 10px 22px; font-weight: 600;">Cancelar</button>
+                <button class="btn-table btn-danger" onclick="ejecutarMoveOutConfirmado()">Confirmar Salida (Move-Out)</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MODAL DE REGISTRO/CONTRATO BLOQUEADO POR OTRO USUARIO -->
+    <div id="modalBloqueoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10002;">
+        <div class="modal-card" style="max-width: 480px; width: 92%; padding: 26px; text-align: center; border-top: 5px solid #f59e0b;">
+            <div style="font-size: 3rem; margin-bottom: 8px;">🔒</div>
+            <h3 style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.3rem;">Contrato en Modificación</h3>
+            <p id="txtBloqueoDetalle" style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
+                Este contrato está siendo modificado actualmente por otro usuario.
+            </p>
+            <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 22px; font-size: 0.85rem; color: var(--text-secondary); text-align: left; display: flex; gap: 10px; align-items: center;">
+                <span style="font-size: 1.3rem;">⏳</span>
+                <span>Por seguridad e integridad de la información, podrás editar este contrato una vez que el otro usuario termine o cierre el formulario.</span>
+            </div>
+            <div style="display: flex; justify-content: center;">
+                <button class="btn-primary" onclick="cerrarModalBloqueoContratos()" style="padding: 10px 32px; font-weight: 600;">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+
+    <!-- MODAL ADVERTENCIA CARGA MASIVA DEV -->
+<div id="modalDevMasivoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
+    <div class="modal-card" style="max-width: 540px; width: 92%; padding: 28px; border: 2px solid #ef4444;">
+        <div style="text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 8px;">🚨</div>
+            <h3 style="color: #ef4444; margin: 0 0 10px 0; font-size: 1.35rem;">MODO DESARROLLADOR: Reemplazo Masivo</h3>
+        </div>
+
+        <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 0.88rem; color: var(--text-primary); line-height: 1.5;">
+            <strong>⚠️ ATENCIÓN: ACCIÓN DE ALTO RIESGO</strong><br>
+            Estás a punto de sobrescribir masivamente la tabla seleccionada. Los espacios que no aparezcan en el archivo CSV se quedarán en blanco o se desvincularán.
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">Selecciona qué tabla deseas actualizar:</label>
+            <select class="field" id="selectTipoDev">
+                <option value="residentes">Tabla de Residentes (Datos Personales)</option>
+                <option value="contratos">Tabla de Contratos (Financieros y Contacto)</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+            <button class="btn-success" type="button" onclick="descargarPlantillaDevSelected()">
+                📥 Descargar Plantilla CSV para esta opción
+            </button>
+        </div>
+
+        <form id="formCargaMasivaDev" onsubmit="procesarCargaMasivaDev(event)">
+            <div style="margin-bottom: 18px;">
+                <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary); display: block; margin-bottom: 6px;">Seleccionar archivo CSV modificado:</label>
+                <input type="file" id="inpFileCSVDev" accept=".csv" required style="width: 100%; padding: 10px; border: 1px dashed var(--border-color); border-radius: 8px; background: var(--bg-main); color: var(--text-primary);">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 0.82rem; color: #ef4444; font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="chkConfirmacionDev" required>
+                    Entiendo que esto borrará y reemplazará los datos actuales de la tabla seleccionada. Sé lo que hago.
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-ghost" type="button" onclick="cerrarModalDevMasivo()">Cancelar</button>
+                <button class="btn-danger" type="submit" id="btnProcesarDev">⚡ Ejecutar Reemplazo Masivo</button>
+            </div>
+        </form>
+    </div>
+</div>
+    <script src="../assets/js/contratos.js?v=3.1"></script>
+    <script src="../assets/js/auth_check.js"></script>
+</body>
+</html>

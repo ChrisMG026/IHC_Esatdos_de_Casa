@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Recuperar Contraseña</title>
+    <link rel="stylesheet" href="../assets/css/styles.css?v=5.3">
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark-mode-preload');
+                
+            }
+        })();
+    </script>
+</head>
+<body class="login-body">
+
+    <button id="themeToggleBtn" class="theme-toggle-btn login-theme-btn" onclick="toggleDarkMode()" type="button">
+        <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+    </button>
+
+
+    <main class="login-card">
+        <div class="login-logo">R</div>
+        <h2>Recuperar Contraseña</h2>
+        
+        <!-- PASO 1: PEDIR USUARIO -->
+        <form id="formPaso1" onsubmit="buscarPregunta(event)">
+            <p>Ingresa tu usuario para buscar tu pregunta de seguridad.</p>
+            <div class="input-group">
+                <label>Usuario</label>
+                <input type="text" id="recUser" placeholder="Ej. jperez" required>
+            </div>
+            <button type="submit" class="btn-login" id="btnBuscar">Buscar mi cuenta</button>
+            <button type="button" class="btn-login btn-secondary" onclick="window.location.href='login.html'">Volver al Login</button>
+        </form>
+
+        <!-- PASO 2: PREGUNTA Y NUEVA CONTRASEÑA -->
+        <form id="formPaso2" style="display: none;" onsubmit="cambiarPassword(event)">
+            <input type="hidden" id="resetUser">
+            
+            <div class="input-group">
+                <label>Pregunta de Seguridad</label>
+                <input type="text" id="preguntaMostrada" readonly style="background: var(--bg-main); font-weight: bold; color: var(--accent-color);">
+            </div>
+            
+            <div class="input-group">
+                <label>Tu Respuesta</label>
+                <input type="text" id="respuestaSecreta" placeholder="Escribe tu respuesta" required>
+            </div>
+            
+            <div class="input-group">
+                <label>Nueva Contraseña</label>
+                <input type="password" id="nuevaPassword" placeholder="••••••••" required minlength="6">
+            </div>
+            
+            <button type="submit" class="btn-login btn-login-success" id="btnCambiar">Cambiar Contraseña</button>
+            <button type="button" class="btn-login btn-secondary" onclick="location.reload()">Cancelar</button>
+        </form>
+    </main>
+
+    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <script src="../assets/js/tema.js"></script>
+
+    <script>
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            let container = document.getElementById('toastContainer');
+            let toast = document.createElement('div');
+            toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
+            let icono = tipo === 'success' ? '✅' : '❌';
+            toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 5000);
+        }
+
+        async function buscarPregunta(e) {
+            e.preventDefault();
+            let user = document.getElementById('recUser').value.trim();
+            let btn = document.getElementById('btnBuscar');
+            btn.innerText = "Buscando...";
+            btn.disabled = true;
+
+            try {
+                let res = await fetch('../controllers/AuthController.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accion: 'buscar', username: user })
+                });
+                let data = await res.json();
+
+                if (data.status === 'success') {
+                    document.getElementById('formPaso1').style.display = 'none';
+                    document.getElementById('formPaso2').style.display = 'block';
+                    document.getElementById('resetUser').value = user;
+                    document.getElementById('preguntaMostrada').value = data.pregunta;
+                } else {
+                    mostrarNotificacion(data.message, 'error');
+                    btn.innerText = "Buscar mi cuenta";
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
+                btn.innerText = "Buscar mi cuenta";
+                btn.disabled = false;
+            }
+        }
+
+        async function cambiarPassword(e) {
+            e.preventDefault();
+            let btn = document.getElementById('btnCambiar');
+            btn.innerText = "Actualizando...";
+            btn.disabled = true;
+
+            let payload = {
+                accion: 'cambiar',
+                username: document.getElementById('resetUser').value,
+                respuesta: document.getElementById('respuestaSecreta').value.trim(),
+                nueva_password: document.getElementById('nuevaPassword').value
+            };
+
+            try {
+                let res = await fetch('../controllers/AuthController.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                let data = await res.json();
+
+                if (data.status === 'success') {
+                    mostrarNotificacion(data.message, 'success');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                } else {
+                    mostrarNotificacion(data.message, 'error');
+                    btn.innerText = "Cambiar Contraseña";
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
+                btn.innerText = "Cambiar Contraseña";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
+

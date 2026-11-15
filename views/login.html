@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Iniciar Sesión</title>
+    <link rel="stylesheet" href="../assets/css/styles.css?v=5.3">
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark-mode-preload');
+            }
+        })();
+    </script>
+</head>
+<body class="login-body">
+
+    <button id="themeToggleBtn" class="theme-toggle-btn login-theme-btn" onclick="toggleDarkMode()" type="button">
+        <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+    </button>
+
+    <main class="login-card">
+        <div class="login-logo">R</div>
+        <h2>RESIDENTE HUB</h2>
+        <p>Ingresa tus credenciales para acceder al sistema.</p>
+
+        <form id="formLogin" onsubmit="ejecutarLogin(event)">
+            <div class="input-group">
+                <label for="inpUsername">Usuario</label>
+                <div class="input-wrap">
+                    <span class="ico">👤</span>
+                    <input type="text" id="inpUsername" placeholder="Ej. admin" required autocomplete="username">
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="inpPassword">Contraseña</label>
+                <div class="input-wrap">
+                    <span class="ico">🔒</span>
+                    <input type="password" id="inpPassword" placeholder="••••••••" required autocomplete="current-password">
+                    <button type="button" class="pw-toggle" onclick="mostrarOcultarPassword('inpPassword', this)" aria-label="Mostrar contraseña">👁️</button>
+                </div>
+            </div>
+            <button type="submit" class="btn-login" id="btnEntrar">Iniciar Sesión</button>
+            <div class="login-meta">
+                <a href="recuperar.html" class="login-link">¿Olvidaste tu contraseña?</a>
+            </div>
+        </form>
+    </main>
+
+    <div class="login-foot">Copyright © Amante 2026</div>
+
+    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <script src="../assets/js/tema.js"></script>
+    <script src="../assets/js/login.js?v=1.1"></script>
+</body>
+</html>
+

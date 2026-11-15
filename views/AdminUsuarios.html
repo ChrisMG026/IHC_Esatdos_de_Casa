@@ -1,0 +1,276 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESIDENTE HUB - Administración</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/styles.css?v=5.3">
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                // Le decimos al documento que prepare el modo oscuro antes de dibujar
+                document.documentElement.classList.add('dark-mode-preload');
+                // Cuando el body esté listo, le ponemos la clase
+                document.addEventListener('DOMContentLoaded', () => {
+                    document.body.classList.add('dark-mode');
+                    document.documentElement.classList.remove('dark-mode-preload');
+                });
+            }
+        })();
+    </script>
+</head>
+<body>
+
+    <!-- SIDEBAR (Exacto al tuyo) -->
+    <aside>
+        <div>
+            <div class="brand">
+                <div class="brand-icon">R</div>
+                <span>RESIDENTE HUB</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-item">Dashboard</a></li>
+                <li><a href="index.html" class="nav-item">Residentes</a></li>
+                <li><a href="Contratos.html" class="nav-item">Contratos</a></li>
+                <li><a href="Estacionamiento.html" class="nav-item">Estacionamiento</a></li>
+                <li><a href="Reportes.html" class="nav-item">Reportes</a></li>
+                <li><a href="Configuraciones.html" class="nav-item">Configuraciones</a></li>
+                <!-- Menú de admin controlado por auth_check.js -->
+                <li id="menuAdminUsuarios" style="display: none;">
+                    <a href="AdminUsuarios.html" class="nav-item active">Administración</a>
+                </li>
+            </ul>
+            <li class="nav-logout">
+                <a href="#" onclick="cerrarSesion(event)" class="nav-item nav-item-danger">Cerrar sesión
+                </a>
+            </li>
+        </div>
+    </aside>
+
+    <!-- WRAPPER PRINCIPAL -->
+    <div class="main-wrapper">
+        <header>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">
+                🛡️ Zona de Administración y Seguridad
+            </div>
+
+            <div class="user-actions">
+                <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
+                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                </button>
+                <span id="nombreUsuarioHeader">👤 Admin ˅</span>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="page-title-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>Gestión de Accesos y Personal</h1>
+            </div>
+
+            <!-- PESTAÑAS -->
+            <div class="admin-tabs">
+                <button class="admin-tab-btn active" onclick="cambiarTabAdmin('usuarios', this)">Usuarios del Sistema</button>
+                <button class="admin-tab-btn" onclick="cambiarTabAdmin('roles', this)">Roles y Permisos</button>
+                <button class="admin-tab-btn" onclick="cambiarTabAdmin('logs', this)">Historial de Actividad</button>
+            </div>
+
+            <!-- TAB USUARIOS -->
+            <div id="tab_usuarios" class="admin-tab-content active">
+                <div style="margin-bottom: 15px; text-align: right;">
+                    <button class="btn-success" onclick="abrirModalUsuario()">+ Nuevo Usuario</button>
+                </div>
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre Completo</th>
+                                <th>Usuario (Login)</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th style="text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyUsuarios"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB ROLES -->
+            <div id="tab_roles" class="admin-tab-content">
+                <div style="margin-bottom: 15px; text-align: right;">
+                    <button class="btn-success" onclick="abrirModalRol()">+ Nuevo Rol</button>
+                </div>
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre del Rol</th>
+                                <th>Permisos Asignados</th>
+                                <th>Protección</th>
+                                <th style="text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyRoles"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+                        <!-- TAB LOGS -->
+            <div id="tab_logs" class="admin-tab-content">
+                <div class="table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha y Hora</th>
+                                <th>Usuario</th>
+                                <th>Acción</th>
+                                <th>Detalles</th>
+                                <th>Dirección IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyLogs"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <footer>
+            <span>Versión 0.3.0 - Módulo de Administración</span>
+            <span>Copyright © Amante 2026</span>
+        </footer>
+    </div>
+
+    <!-- MODAL CREAR USUARIO -->
+    <div id="modalUsuarioOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 500px; width: 90%; padding: 24px;">
+            <div class="modal-header modal-head">
+                <h3 style="margin: 0;">Crear Nuevo Usuario</h3>
+                <button class="modal-close" onclick="cerrarModalUsuario()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row"><div class="form-col"><label>Nombre Completo:</label><input type="text" id="newUserNombre" placeholder="Ej. Juan Pérez"></div></div>
+                <div class="form-row">
+                    <div class="form-col"><label>Usuario (Login):</label><input type="text" id="newUserUsername" placeholder="Ej. jperez"></div>
+                    <div class="form-col"><label>Contraseña:</label><input type="password" id="newUserPassword" placeholder="••••••••"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Rol del Usuario:</label>
+                        <select class="field" id="newUserRol"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col"><label>Pregunta de Seguridad:</label><input type="text" id="newUserPregunta" placeholder="Ej. ¿Nombre de tu mascota?"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col"><label>Respuesta Secreta:</label><input type="text" id="newUserRespuesta" placeholder="Ej. Firulais"></div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; text-align: right;">
+                <button class="btn-save btn-primary" onclick="guardarUsuario()">Guardar Usuario</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CREAR/EDITAR ROL -->
+    <div id="modalRolOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 600px; width: 90%; padding: 24px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header modal-head">
+                <h3 id="tituloModalRol" style="margin: 0;">Crear Nuevo Rol</h3>
+                <button class="modal-close" onclick="cerrarModalRol()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Nombre del Rol:</label>
+                        <input type="text" id="nombreRol" placeholder="Ej. Recepcionista">
+                    </div>
+                    <div class="form-col">
+                        <label>Descripción:</label>
+                        <input type="text" id="descripcionRol" placeholder="Ej. Gestiona residentes">
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 15px; margin-bottom: 5px; color: var(--text-primary);">Selecciona los permisos para este rol:</h4>
+                <div class="checkbox-group" id="contenedorPermisos"></div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; text-align: right;">
+                <input type="hidden" id="editIdRol" value="0">
+                <button class="btn-save btn-success" onclick="guardarRol()">Guardar Rol</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR USUARIO (ACTUALIZADO) -->
+    <div id="modalEditUsuarioOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center;">
+        <div class="modal-card" style="max-width: 450px; width: 90%; padding: 24px;">
+            <div class="modal-header modal-head">
+                <h3 style="margin: 0;">Editar Usuario</h3>
+                <button class="modal-close" onclick="document.getElementById('modalEditUsuarioOverlay').style.display='none'">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editUserId">
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Rol del Usuario:</label>
+                        <select class="field" id="editUserRol"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Estado:</label>
+                        <select class="field" id="editUserActivo">
+                            <option value="1">Activo</option>
+                            <option value="0">Inactivo (Bloqueado)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                    <div class="form-col">
+                        <label>Nueva Contraseña (Opcional):</label>
+                        <input class="field" type="password" id="editUserPassword" placeholder="Dejar en blanco para no cambiar">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 16px; display: flex; justify-content: space-between;">
+                <button class="btn-danger" id="btnEliminarUsuario" onclick="eliminarUsuario()">🗑️ Eliminar</button>
+                <button class="btn-save btn-primary" onclick="guardarEdicionUsuario()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL  -->
+    <div id="modalConfirmacionCustom" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
+        <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center;">
+            <div id="iconoConfirmacion" style="font-size: 2.5rem; margin-bottom: 10px;">⚠️</div>
+            <h3 id="tituloConfirmacion" style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.2rem;">Confirmación</h3>
+            <p id="textoConfirmacion" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;"></p>
+            
+            <!-- Input para cuando pedimos contraseña o texto (opcional) -->
+            <div id="contenedorInputConfirmacion" style="display: none; margin-bottom: 20px;">
+                <input class="field" type="text" id="inputTextoConfirmacion">
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-ghost" id="btnCancelarConfirmacion" onclick="cerrarConfirmacionCustom()" style="flex: 1;">
+                    Cancelar
+                </button>
+                <button class="btn-danger" id="btnAceptarConfirmacion" style="flex: 1;">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <!-- SCRIPTS -->
+    <script src="../assets/js/auth_check.js"></script>
+    <script src="../assets/js/admin_usuarios.js?v=2.1"></script>
+</body>
+</html>
