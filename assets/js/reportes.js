@@ -38,6 +38,7 @@ async function cargarReportesDesdeBD() {
         }
     } catch (e) {
         console.error("Error al cargar reportes:", e);
+        window.UIEstados.mostrarErrorGlobal('No se pudo cargar la información de reportes.');
         mostrarNotificacion('Error de conexión al cargar los reportes.', 'error');
     }
 }
@@ -57,7 +58,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     if (!container) return;
     let toast = document.createElement('div');
     toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-    let icono = tipo === 'success' ? '✅' : '❌';
+    let icono = tipo === 'success' ? '<span class="ui-ico ui-ico-check"></span>' : '<span class="ui-ico ui-ico-close"></span>';
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 8000);
@@ -110,7 +111,7 @@ function renderReporteActivo() {
     let datosPaginados = datosFiltradosReporteActivo.slice(inicio, fin);
 
     if (datosPaginados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color: var(--text-secondary); padding: 20px;">No se encontraron registros.</td></tr>`;
+        tbody.innerHTML = UIEstados.filaVacia(10, 'Sin resultados', 'Ajusta los filtros para ver más registros.', 'box');
     } else {
         datosPaginados.forEach(item => {
             if (reporteActivo === 'cambios_cajon') {
@@ -131,8 +132,8 @@ function renderReporteActivo() {
                 tbody.innerHTML += `
                     <tr>
                         <td><strong>${item.residente || 'N/A'}</strong></td>
-                        <td><span style="color:#ef4444; font-weight:bold;">${item.nomenclatura_inicial || '---'}</span></td>
-                        <td><span style="color:#10b981; font-weight:bold;">${item.nomenclatura_nueva || '---'}</span></td>
+                        <td><span style="color:var(--danger); font-weight:bold;">${item.nomenclatura_inicial || '---'}</span></td>
+                        <td><span style="color:var(--success); font-weight:bold;">${item.nomenclatura_nueva || '---'}</span></td>
                         <td>${item.motivo_cambio || 'N/R'}</td>
                         <td>${item.fecha_cambio || 'N/A'}</td>
                     </tr>`;
@@ -166,7 +167,7 @@ function renderReporteActivo() {
                         <td>${item.fecha_out_anterior || 'N/A'}</td>
                         <td><span class="badge-date bg-green">${item.fecha_out_nueva || 'N/A'}</span></td>
                         <td>${rAnt}</td>
-                        <td><strong style="color:#10b981;">${rNue}</strong></td>
+                        <td><strong style="color:var(--success);">${rNue}</strong></td>
                         <td>${item.plazo_extension || 'N/A'}</td>
                         <td>${item.fecha_registro || 'N/A'}</td>
                     </tr>`;
@@ -296,7 +297,7 @@ function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     let esOscuro = document.body.classList.contains('dark-mode');
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
-    document.getElementById('themeIcon').innerText = esOscuro ? '☀️' : '🌙';
+    document.getElementById('themeIcon').textContent = '';
     document.getElementById('themeText').innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
@@ -306,7 +307,7 @@ window.onload = function() {
 
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').innerText = '☀️';
+        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').textContent = '';
         if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarReportesDesdeBD();

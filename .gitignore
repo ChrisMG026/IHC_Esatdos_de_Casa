@@ -1,7 +1,25 @@
-# Backups and temporary files
+# ==========================================
+# ARCHIVOS NO NECESARIOS PARA LA PÁGINA
+# ==========================================
+
+# Herramientas de desarrollo / agentes (solo locales)
+.continue/
+.agents/
+.opencode/
+opencode.json
+
+# Respaldos y scripts temporales de diagnóstico
 legacy_API_backup/
+check_schema.php
 *.old
 *.bak
 *.log
+*.tmp
+
+# Material recopilatorio y documentación (no se usa en runtime)
+Actividades recopilatorias/
+README.md
+
+# Sistema operativo
 .DS_Store
 Thumbs.db

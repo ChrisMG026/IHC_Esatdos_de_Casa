@@ -94,6 +94,7 @@ async function cargarContratosDesdeBD() {
         actualizarBadgeSidebarYNotificaciones();
     } catch (error) {
         console.error("Error al conectar con la base de datos:", error);
+        window.UIEstados.mostrarErrorGlobal('No se pudo cargar la lista de contratos.');
         mostrarNotificacion('Error al cargar contratos.', 'error');
     }
 }
@@ -118,7 +119,7 @@ function actualizarBadgeSidebarYNotificaciones() {
 
     if (listaContenido) {
         if (total === 0) {
-            listaContenido.innerHTML = '<p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; padding:10px 0;">No hay contratos pendientes ni por vencer.</p>';
+            listaContenido.innerHTML = UIEstados.vacio('Sin contratos pendientes', 'No hay contratos por vencer en los próximos días.', 'calendar');
         } else {
             listaContenido.innerHTML = '';
             pendientes.forEach(res => {
@@ -136,10 +137,10 @@ function actualizarBadgeSidebarYNotificaciones() {
                         </div>
                         <div style="display: flex; gap: 6px; justify-content: flex-end;">
                             <button class="btn-danger" onclick="iniciarMoveOutDesdeNotif('${res.nomenclatura}')">
-                                🚪 Move-Out
+                                <span class="ui-ico ui-ico-door"></span> Move-Out
                             </button>
                             <button class="btn-success" onclick="abrirModalRenovar('${res.nomenclatura}'); togglePanelNotificaciones();">
-                                🔄 Renovar
+                                <span class="ui-ico ui-ico-refresh"></span> Renovar
                             </button>
                         </div>
                     </div>
@@ -174,14 +175,14 @@ function iniciarMoveOutDesdeNotif(nomenclatura) {
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; color: var(--text-primary); line-height: 1.6;">
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <p style="margin: 0;"><strong>📞 Teléfono:</strong> ${res.celular || 'No registrado'}</p>
-                    <p style="margin: 0;"><strong>✉️ Correo:</strong> ${res.correo || 'No registrado'}</p>
-                    <p style="margin: 0;"><strong>📍 Ubicación:</strong> Dep. ${res.numero_departamento || 'N/A'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-phone"></span> Teléfono:</strong> ${res.celular || 'No registrado'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-mail"></span> Correo:</strong> ${res.correo || 'No registrado'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-pin"></span> Ubicación:</strong> Dep. ${res.numero_departamento || 'N/A'}</p>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <p style="margin: 0;"><strong>💵 Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
-                    <p style="margin: 0;"><strong>📅 Fecha Move-In:</strong> ${res.fecha_move_in || 'N/A'}</p>
-                    <p style="margin: 0;"><strong>📅 Fecha Move-Out:</strong> ${res.fecha_move_out || 'N/A'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-cash"></span> Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-calendar"></span> Fecha Move-In:</strong> ${res.fecha_move_in || 'N/A'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-calendar"></span> Fecha Move-Out:</strong> ${res.fecha_move_out || 'N/A'}</p>
                 </div>
             </div>
         </div>
@@ -235,7 +236,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     if (!container) return;
     let toast = document.createElement('div');
     toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-    let icono = tipo === 'success' ? '✅' : '❌';
+    let icono = tipo === 'success' ? '<span class="ui-ico ui-ico-check"></span>' : '<span class="ui-ico ui-ico-close"></span>';
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 8000);
@@ -275,17 +276,17 @@ function renderTablaContratos(datos) {
 
         if (item.estado_vencimiento === 'Por vencer') {
             badgeClass = 'vencimiento-por-vencer';
-            estadoTexto = `⚠️ Por vencer (${item.dias_restantes} d.)`;
+            estadoTexto = `<span class="ui-ico ui-ico-warning"></span> Por vencer (${item.dias_restantes} d.)`;
         } else if (item.estado_vencimiento === 'Vencido') {
             badgeClass = 'vencimiento-vencido';
-            estadoTexto = `🚨 Vencido (${Math.abs(item.dias_restantes)} d.)`;
+            estadoTexto = `<span class="ui-ico ui-ico-warning"></span> Vencido (${Math.abs(item.dias_restantes)} d.)`;
         }
 
         let rentaFormatted = rentaVal.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
         let tieneAuto = (item.tiene_carro && item.tiene_carro.toLowerCase() === 'si');
         let badgeVehiculo = tieneAuto 
-            ? `<span class="badge-status status-green" style="font-size:0.75rem; padding: 2px 6px;">🚗 Si</span>` 
-            : `<span style="color: var(--text-secondary); font-size:0.82rem;">🚫 No</span>`;
+            ? `<span class="badge-status status-green" style="font-size:0.75rem; padding: 2px 6px;"><span class="ui-ico ui-ico-car"></span> Si</span>` 
+            : `<span style="color: var(--text-secondary); font-size:0.82rem;"><span class="ui-ico ui-ico-close"></span> No</span>`;
 
         tbody.innerHTML += `
             <tr>
@@ -297,7 +298,7 @@ function renderTablaContratos(datos) {
                 <td><strong>${item.nombre_residente || 'N/A'}</strong></td>
                 <td>
                     <div class="col-contacto">
-                        <span class="tel-text"><i class="fas fa-phone" style="color: #ec4899; font-size: 0.75rem;"></i> ${item.celular || 'S/N'}</span>
+                        <span class="tel-text"><span class="ui-ico ui-ico-phone" style="font-size: 0.75rem;"></span> ${item.celular || 'S/N'}</span>
                         <span class="email-text"><i class="fas fa-envelope" style="font-size: 0.75rem;"></i> ${item.correo || 'S/C'}</span>
                     </div>
                 </td>
@@ -318,11 +319,11 @@ function renderTablaContratos(datos) {
                 <td style="text-align: center;">
                     <div class="action-buttons-group" style="justify-content: center;">
                         ${puedeEditarContratos ? `
-                    <button class="btn-table" onclick="abrirModalRenovar('${item.nomenclatura}')" title="Renovar Contrato">🔄</button>
-                    <button class="btn-table" onclick="abrirModalAuto('${item.nomenclatura}')" title="Gestionar Auto">🚗</button>
+                    <button class="btn-table" onclick="abrirModalRenovar('${item.nomenclatura}')" title="Renovar Contrato"><span class="ui-ico ui-ico-refresh"></span></button>
+                    <button class="btn-table" onclick="abrirModalAuto('${item.nomenclatura}')" title="Gestionar Auto"><span class="ui-ico ui-ico-car"></span></button>
                     ` : ''}
-                    <button class="btn-table" onclick="generarPDFContrato('${item.nomenclatura}')" title="Imprimir PDF">📄</button>
-                    <button class="btn-table" onclick="verHistorico('${item.nomenclatura}', '${item.nombre_residente}')" title="Ver Histórico">📜</button>
+                    <button class="btn-table" onclick="generarPDFContrato('${item.nomenclatura}')" title="Imprimir PDF"><span class="ui-ico ui-ico-print"></span></button>
+                    <button class="btn-table" onclick="verHistorico('${item.nomenclatura}', '${item.nombre_residente}')" title="Ver Histórico"><span class="ui-ico ui-ico-refresh"></span></button>
                     </div>
                 </td>
             </tr>
@@ -803,13 +804,13 @@ async function verHistorico(nomenclatura, residente) {
 
             if (res.renovaciones.length > 0) {
                 tieneDatos = true;
-                contenedor.innerHTML += '<h4 style="margin: 5px 0; color: #10b981;">🔄 Historial de Renovaciones:</h4>';
+                contenedor.innerHTML += '<h4 style="margin: 5px 0; color: var(--success);"><span class="ui-ico ui-ico-refresh"></span> Historial de Renovaciones:</h4>';
                 res.renovaciones.forEach(r => {
                     contenedor.innerHTML += `
                         <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; font-weight: bold;">
                                 <span>${r.residente}</span>
-                                <span style="color: #10b981;">${r.fecha_registro}</span>
+                                <span style="color: var(--success);">${r.fecha_registro}</span>
                             </div>
                             <p style="margin: 4px 0; font-size: 0.88rem;">
                                 <strong>Plazo:</strong> ${r.plazo_extension} | <strong>Renta:</strong> $${parseFloat(r.renta_anterior).toLocaleString('es-MX')} ➔ $${parseFloat(r.renta_nueva).toLocaleString('es-MX')} MXN
@@ -824,7 +825,7 @@ async function verHistorico(nomenclatura, residente) {
 
             if (res.cambios.length > 0) {
                 tieneDatos = true;
-                contenedor.innerHTML += '<h4 style="margin: 12px 0 5px 0; color: var(--accent-color);">🔀 Historial de Cambios de Unidad:</h4>';
+                contenedor.innerHTML += '<h4 style="margin: 12px 0 5px 0; color: var(--accent-color);"><span class="ui-ico ui-ico-refresh"></span> Historial de Cambios de Unidad:</h4>';
                 res.cambios.forEach(c => {
                     contenedor.innerHTML += `
                         <div style="background: var(--bg-main); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
@@ -844,11 +845,11 @@ async function verHistorico(nomenclatura, residente) {
             }
 
             if (!tieneDatos) {
-                contenedor.innerHTML = '<p style="color: var(--text-secondary);">No hay renovaciones ni cambios registrados para este espacio.</p>';
+                contenedor.innerHTML = UIEstados.vacio('Sin historial', 'No hay renovaciones ni cambios registrados para este espacio.', 'clock');
             }
         }
     } catch (e) {
-        contenedor.innerHTML = '<p style="color: #ef4444;">Error al cargar historial.</p>';
+        contenedor.innerHTML = '<p style="color: var(--danger);">Error al cargar historial.</p>';
     }
 }
 
@@ -949,7 +950,7 @@ function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     let esOscuro = document.body.classList.contains('dark-mode');
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
-    document.getElementById('themeIcon').innerText = esOscuro ? '☀️' : '🌙';
+    document.getElementById('themeIcon').textContent = '';
     document.getElementById('themeText').innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
@@ -961,7 +962,7 @@ window.onload = function() {
         document.body.classList.add('dark-mode');
         let icon = document.getElementById('themeIcon');
         let text = document.getElementById('themeText');
-        if(icon) icon.innerText = '☀️';
+        if(icon) icon.textContent = '';
         if(text) text.innerText = 'Modo Claro';
     }
     
@@ -1004,7 +1005,7 @@ async function procesarCargaMasivaDev(e) {
 
     let btn = document.getElementById('btnProcesarDev');
     btn.disabled = true;
-    btn.innerText = '🔄 Procesando datos masivos...';
+    btn.innerHTML = '<span class="ui-ico ui-ico-refresh"></span> Procesando datos masivos...';
 
     let formData = new FormData();
     formData.append('archivo_csv', fileInput.files[0]);
@@ -1030,6 +1031,6 @@ async function procesarCargaMasivaDev(e) {
         mostrarNotificacion('Ocurrió un error al procesar la carga masiva.', 'error');
     } finally {
         btn.disabled = false;
-        btn.innerText = '⚡ Ejecutar Reemplazo Masivo';
+        btn.innerHTML = '<span class="ui-ico ui-ico-bolt"></span> Ejecutar Reemplazo Masivo';
     }
 }

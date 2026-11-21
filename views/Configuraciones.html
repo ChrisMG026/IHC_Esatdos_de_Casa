@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RESIDENTE HUB - Configuraciones</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../assets/css/styles.css?v=5.3">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="../assets/css/styles.css?v=6.4">
     <script>
         (function() {
             if (localStorage.getItem('theme') === 'dark') {
@@ -20,6 +23,7 @@
         
 </head>
 <body>
+    <script src="../assets/js/ui-estados.js?v=6.4"></script>
 
     <!-- SIDEBAR -->
     <aside>
@@ -48,7 +52,7 @@
     <div class="main-wrapper">
         <header>
             <div class="search-container" style="width: 60%;">
-                <span style="color: var(--text-secondary);">🔍</span>
+                
                 <input type="text" id="searchInputConfig" placeholder="Buscar por departamento, nomenclatura o clave..." oninput="aplicarFiltrosConfig()">
                 
                 <div class="filter-dropdowns">
@@ -64,13 +68,23 @@
 
             <div class="user-actions">
                 <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleDarkMode()">
-                    <span id="themeIcon">🌙</span> <span id="themeText">Modo Oscuro</span>
+                    <span id="themeIcon" aria-hidden="true"></span> <span id="themeText">Modo Oscuro</span>
                 </button>
-                <span id="nombreUsuarioHeader">👤 Cargando...</span>
+                <span id="nombreUsuarioHeader"><span class="ui-ico ui-ico-user"></span> Cargando...</span>
             </div>
         </header>
         <div class="content">
             
+            <div class="page-title-bar">
+                <div class="page-heading">
+                    <nav class="breadcrumb" aria-label="Ruta de navegación">
+                        <span>Residente Hub</span><span aria-hidden="true">/</span><span aria-current="page">Configuraciones</span>
+                    </nav>
+                    <h1>Configuraciones del Sistema</h1>
+                    <p class="page-meta"><span class="ui-ico ui-ico-clock" aria-hidden="true"></span> Datos en vivo · <span data-estado-datos>Cargando...</span></p>
+                </div>
+            </div>
+
             <!-- NAVEGACIÓN DE PESTAÑAS -->
             <div class="config-tabs">
                 <button class="config-tab-btn active" onclick="cambiarTab('llaves', this)">Llaves Maestras
@@ -88,15 +102,15 @@
                         <h3 style="margin:0; color: var(--text-primary);">Gestión General de Claves</h3>
                         <div style="display: flex; gap: 10px;">
                             <button class="btn-success" onclick="descargarPlantillaCSV()">
-                                📥 Descargar Plantilla Excel (CSV)
+                                <span class="ui-ico ui-ico-download"></span> Descargar Plantilla Excel (CSV)
                             </button>
 
                             <label class="btn-primary" for="inputCSV">
-                                📤 Cargar Claves Masivas
+                                <span class="ui-ico ui-ico-upload"></span> Cargar Claves Masivas
                             </label>
                             <input type="file" id="inputCSV" accept=".csv" onchange="subirCSVClaves(this)" style="display: none;">
                             <button class="btn-purple" onclick="window.location.href='../controllers/BackupController.php'">
-                             💾 Descargar Respaldo SQL (.sql)
+                             <span class="ui-ico ui-ico-save"></span> Descargar Respaldo SQL (.sql)
                             </button>
                         </div>
                     </div>
@@ -168,7 +182,7 @@
     <!-- MODAL DE CONFIRMACIÓN DE CLAVE MAESTRA -->
     <div id="modalConfirmacion" class="modal-overlay">
         <div class="modal-card">
-            <h3 style="margin-top:0; color: #ef4444;">⚠️ Seguridad de Clave Maestra</h3>
+            <h3 style="margin-top:0; color: var(--danger);"><span class="ui-ico ui-ico-warning"></span> Seguridad de Clave Maestra</h3>
             <p id="modalMensaje" style="line-height: 1.5; font-size: 0.95rem;"></p>
             <div class="modal-actions">
                 <button class="btn-ghost" onclick="cerrarModalConfirmacion()">Cancelar</button>
@@ -180,7 +194,7 @@
    <!-- MODAL PARA RAZÓN DE CAMBIO DE ESTADO (DESHABILITAR / HABILITAR) -->
     <div id="modalRazonDep" class="modal-overlay">
         <div class="modal-card">
-            <h3 style="margin-top:0;">⚠️ Cambio de Estado</h3>
+            <h3 style="margin-top:0;"><span class="ui-ico ui-ico-warning"></span> Cambio de Estado</h3>
             <p id="modalRazonTexto" style="line-height: 1.5; font-size: 0.95rem; margin-bottom: 12px;"></p>
             <textarea class="field" id="inputRazonDep" placeholder="Escriba obligatoriamente la razón..." rows="3" style="resize: vertical;"></textarea>
             <div class="modal-actions">
@@ -192,14 +206,14 @@
 
     <!-- MODAL DE RECURSO BLOQUEADO POR OTRO USUARIO -->
     <div id="modalBloqueoOverlay" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10002;">
-        <div class="modal-card" style="max-width: 480px; width: 92%; padding: 26px; text-align: center; border-top: 5px solid #f59e0b;">
-            <div style="font-size: 3rem; margin-bottom: 8px;">🔒</div>
+        <div class="modal-card" style="max-width: 480px; width: 92%; padding: 26px; text-align: center; border-top: 5px solid var(--warning);">
+            <div style="font-size: 3rem; margin-bottom: 8px;"><span class="ui-ico ui-ico-lock"></span></div>
             <h3 style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.3rem;">Recurso en Modificación</h3>
             <p id="txtBloqueoDetalle" style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
                 Este recurso está siendo modificado actualmente por otro usuario.
             </p>
             <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 22px; font-size: 0.85rem; color: var(--text-secondary); text-align: left; display: flex; gap: 10px; align-items: center;">
-                <span style="font-size: 1.3rem;">⏳</span>
+                <span class="ui-ico ui-ico-clock" style="font-size: 1.3rem;"></span>
                 <span>Por seguridad e integridad de la información, podrás modificar este recurso una vez que el otro usuario termine.</span>
             </div>
             <div style="display: flex; justify-content: center;">
@@ -209,9 +223,10 @@
     </div>
 
     <!-- TOAST -->
-    <div id="toastContainer" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+    <div id="toastContainer" role="status" aria-live="polite" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
 
-    <script src="../assets/js/configuraciones.js?v=10.5"></script>
-    <script src="../assets/js/auth_check.js"></script>
+    <script src="../assets/js/configuraciones.js?v=6.4"></script>
+    <script src="../assets/js/auth_check.js?v=6.4"></script>
+    <script src="../assets/js/sw-register.js?v=6.4"></script>
 </body>
 </html>

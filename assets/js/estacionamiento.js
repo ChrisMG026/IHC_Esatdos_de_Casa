@@ -11,13 +11,18 @@ async function cargarEstacionamientoDesdeBD() {
         renderTablasEstacionamiento(estacionamientoFiltrados);
     } catch (error) {
         console.error("Error al conectar con la base de datos:", error);
+        window.UIEstados.mostrarErrorGlobal('No se pudo cargar el estacionamiento.');
         mostrarNotificacion('Error al cargar la información de estacionamiento.', 'error');
     }
 }
 
-function esCajonAdministrativo(cajonStr) {
-    let str = String(cajonStr).trim();
-    // Si empieza con "Cajón", es de residente. Si no, es administrativo.
+function esCajonAdministrativo(item) {
+    // El modelo indica de forma explícita si el cajón pertenece a administración.
+    if (item && typeof item.es_admin !== 'undefined') {
+        return Number(item.es_admin) === 1;
+    }
+    // Retrocompatibilidad: si el backend no envía es_admin, se infiere del nombre.
+    let str = String((item && item.cajon) || '').trim();
     return !str.toLowerCase().startsWith('cajón');
 }
 
@@ -26,7 +31,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     if (!container) return;
     let toast = document.createElement('div');
     toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-    let icono = tipo === 'success' ? '✅' : '❌';
+    let icono = tipo === 'success' ? '<span class="ui-ico ui-ico-check"></span>' : '<span class="ui-ico ui-ico-close"></span>';
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 8000);
@@ -55,19 +60,20 @@ function renderTablasEstacionamiento(datos) {
 
     let ocupadosCount = 0;
     let disponiblesCount = 0;
+    let deshabilitadosCount = 0;
     let totalResidentesCount = 0;
 
     datos.forEach((item) => {
-        let esAdmin = esCajonAdministrativo(item.cajon);
+        let esAdmin = esCajonAdministrativo(item);
         let tieneTag = item.numero_tag && item.numero_tag.trim() !== '' && item.numero_tag !== '---';
         
         let botonQR = tieneTag 
-            ? `<button class="btn-table btn-soft" onclick="abrirModalQR('${item.numero_tag}', '${item.nombre_completo || item.cajon}')" title="Ver QR de TAG para Plumas">📷 QR</button>`
+            ? `<button class="btn-table btn-soft" onclick="abrirModalQR('${item.numero_tag}', '${item.nombre_completo || item.cajon}')" title="Ver QR de TAG para Plumas"><span class="ui-ico ui-ico-qr"></span> QR</button>`
             : `<span style="color:var(--text-secondary); font-size:0.75rem;">Sin TAG</span>`;
 
         if (esAdmin) {
             let botonEditarAdminHTML = puedeEditarAdmin 
-            ? `<button class="btn-table btn-soft-purple" onclick='abrirModalAdmin(${JSON.stringify(item)})' title="Editar Cajón Exclusivo">✏️ Editar</button>`
+            ? `<button class="btn-table btn-soft-purple" onclick='abrirModalAdmin(${JSON.stringify(item)})' title="Editar Cajón Exclusivo"><span class="ui-ico ui-ico-edit"></span> Editar</button>`
             : `<span style="color:var(--text-secondary); font-size:0.8rem;">Protegido</span>`;
             tbodyAdmin.innerHTML += `
                 <tr class="fila-admin">
@@ -86,16 +92,20 @@ function renderTablasEstacionamiento(datos) {
         } else {
             totalResidentesCount++;
             let esOcupado = item.estado === 'Ocupado';
+            let esDeshabilitado = item.estado === 'Deshabilitado';
             if (esOcupado) ocupadosCount++;
-            else disponiblesCount++;
+            else if (item.estado === 'Libre') disponiblesCount++;
+            else if (esDeshabilitado) deshabilitadosCount++;
 
             let badgeEstado = esOcupado 
                 ? `<span class="badge-status" style="background: rgba(99, 102, 241, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color);">Ocupado</span>` 
-                : `<span class="badge-status" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981;">Disponible</span>`;
+                : esDeshabilitado
+                    ? `<span class="badge-status" style="background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning);">Deshabilitado</span>`
+                    : `<span class="badge-status" style="background: var(--success-soft); color: var(--success); border: 1px solid var(--success);">Disponible</span>`;
 
             tbodyResidentes.innerHTML += `
                 <tr>
-                    <td><strong>Cajón ${item.cajon}</strong></td>
+                    <td><strong>${item.cajon}</strong></td>
                     <td>${item.numero_tag || '<span style="color:var(--text-secondary)">---</span>'}</td>
                     <td><strong>${item.nombre_completo || '<span style="color:var(--text-secondary)">Libre</span>'}</strong></td>
                     <td><span style="font-weight: 600; color: var(--accent-color);">${item.nomenclatura || '---'}</span></td>
@@ -112,6 +122,8 @@ function renderTablasEstacionamiento(datos) {
     document.getElementById('statTotalCajones').innerText = totalResidentesCount;
     document.getElementById('statCajonesOcupados').innerText = ocupadosCount;
     document.getElementById('statCajonesDisponibles').innerText = disponiblesCount;
+    let elDeshabilitados = document.getElementById('statCajonesDeshabilitados');
+    if (elDeshabilitados) elDeshabilitados.innerText = deshabilitadosCount;
 }
 
 function abrirModalQR(tag, nombre) {
@@ -238,7 +250,7 @@ function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     let esOscuro = document.body.classList.contains('dark-mode');
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
-    document.getElementById('themeIcon').innerText = esOscuro ? '☀️' : '🌙';
+    document.getElementById('themeIcon').textContent = '';
     document.getElementById('themeText').innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
@@ -248,7 +260,7 @@ window.onload = function() {
 
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').innerText = '☀️';
+        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').textContent = '';
         if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarEstacionamientoDesdeBD();

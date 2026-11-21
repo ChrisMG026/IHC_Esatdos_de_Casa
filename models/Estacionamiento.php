@@ -17,8 +17,12 @@ class Estacionamiento {
     }
 
     public function obtenerTodos(): array {
+        // El catálogo de cajones de residentes vive en cajones_estacionamiento,
+        // pero los cajones exclusivos de administración (Administracion, Comercial,
+        // Mantenimiento, Operaciones, ...) solo existen en estacionamiento.
+        // Se unen ambos orígenes para que ningún cajón dado de alta quede fuera.
         $sql = "SELECT 
-                    c.nombre_cajon AS cajon,
+                    base.cajon AS cajon,
                     e.numero_tag,
                     e.nombre_completo,
                     e.nomenclatura,
@@ -26,20 +30,24 @@ class Estacionamiento {
                     e.color_auto,
                     e.placas,
                     c.estado AS estado_cajon,
+                    CASE WHEN c.id_cajon IS NULL THEN 1 ELSE 0 END AS es_admin,
                     CASE 
+                        WHEN c.id_cajon IS NULL THEN 'Admin'
                         WHEN c.estado = 'Deshabilitado' THEN 'Deshabilitado'
-                        WHEN c.nombre_cajon LIKE 'Admin%' THEN 'Admin'
-                        WHEN e.nombre_completo IS NOT NULL AND e.nombre_completo != '' THEN 'Ocupado'
+                        WHEN e.nombre_completo IS NOT NULL AND TRIM(e.nombre_completo) != '' THEN 'Ocupado'
                         ELSE 'Libre'
-                    END AS estado_ocupacion
-                FROM cajones_estacionamiento c
-                LEFT JOIN estacionamiento e ON c.nombre_cajon = e.cajon
+                    END AS estado
+                FROM (
+                    SELECT nombre_cajon AS cajon FROM cajones_estacionamiento
+                    UNION
+                    SELECT cajon FROM estacionamiento
+                ) AS base
+                LEFT JOIN cajones_estacionamiento c ON c.nombre_cajon = base.cajon
+                LEFT JOIN estacionamiento e ON e.cajon = base.cajon
                 ORDER BY 
-                    CASE 
-                        WHEN c.nombre_cajon LIKE 'Admin%' THEN 0 
-                        ELSE 1 
-                    END,
-                    CAST(REGEXP_REPLACE(c.nombre_cajon, '[^0-9]', '') AS UNSIGNED) ASC";
+                    CASE WHEN c.id_cajon IS NULL THEN 0 ELSE 1 END ASC,
+                    CASE WHEN c.id_cajon IS NULL THEN base.cajon END ASC,
+                    CAST(REGEXP_REPLACE(base.cajon, '[^0-9]', '') AS UNSIGNED) ASC";
 
         $result = $this->db->query($sql);
         $data = [];

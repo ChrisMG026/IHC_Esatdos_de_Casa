@@ -27,6 +27,93 @@ window.addEventListener('load', function() {
 });
 
 // ==========================================
+// FOCO EN MODALES: foco inicial, Tab confinado y retorno al cerrar
+// Se observa el cambio de display; no modifica ninguna funcion existente.
+// ==========================================
+(function () {
+    let modalActivo = null;
+    let focoAnterior = null;
+    let observando = false;
+    const selectorFoco = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function focusables(modal) {
+        return Array.from(modal.querySelectorAll(selectorFoco)).filter(el => el.getClientRects().length > 0);
+    }
+
+    function preparar(modal) {
+        const card = modal.querySelector('.modal-card');
+        if (!card) return;
+        if (!card.hasAttribute('role')) card.setAttribute('role', 'dialog');
+        if (!card.hasAttribute('aria-modal')) card.setAttribute('aria-modal', 'true');
+        const titulo = card.querySelector('h1, h2, h3');
+        if (titulo && !card.hasAttribute('aria-labelledby')) {
+            if (!titulo.id) titulo.id = 'titulo-' + (modal.id || 'modal');
+            card.setAttribute('aria-labelledby', titulo.id);
+        }
+    }
+
+    function abrir(modal) {
+        if (modalActivo === modal) return;
+        modalActivo = modal;
+        focoAnterior = document.activeElement;
+        preparar(modal);
+        const elementos = focusables(modal);
+        const preferido = modal.querySelector('[autofocus]') ||
+            elementos.find(el => ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName)) ||
+            elementos[0];
+        if (preferido) {
+            preferido.focus();
+        } else {
+            const card = modal.querySelector('.modal-card');
+            if (card) {
+                card.setAttribute('tabindex', '-1');
+                card.focus();
+            }
+        }
+    }
+
+    function cerrar(modal) {
+        if (modalActivo !== modal) return;
+        modalActivo = null;
+        if (focoAnterior && document.contains(focoAnterior) && focoAnterior.focus) focoAnterior.focus();
+        focoAnterior = null;
+    }
+
+    function sincronizar() {
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            if (getComputedStyle(modal).display !== 'none') abrir(modal);
+            else cerrar(modal);
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Tab' || !modalActivo) return;
+        const elementos = focusables(modalActivo);
+        if (!elementos.length) { e.preventDefault(); return; }
+        const primero = elementos[0];
+        const ultimo = elementos[elementos.length - 1];
+        if (e.shiftKey && document.activeElement === primero) {
+            e.preventDefault();
+            ultimo.focus();
+        } else if (!e.shiftKey && document.activeElement === ultimo) {
+            e.preventDefault();
+            primero.focus();
+        } else if (!modalActivo.contains(document.activeElement)) {
+            e.preventDefault();
+            primero.focus();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (observando) return;
+        observando = true;
+        const observer = new MutationObserver(sincronizar);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['style'], childList: true, subtree: true });
+        sincronizar();
+    });
+})();
+
+// ==========================================
 // MENÚ LATERAL DESPLEGABLE (tablets y celulares)
 // ==========================================
 document.addEventListener("DOMContentLoaded", function() {
@@ -39,7 +126,7 @@ document.addEventListener("DOMContentLoaded", function() {
     btn.type = 'button';
     btn.className = 'menu-toggle';
     btn.setAttribute('aria-label', 'Abrir menú');
-    btn.innerText = '☰';
+    btn.setAttribute('aria-expanded', 'false');
     header.insertBefore(btn, header.firstChild);
 
     let overlay = document.createElement('div');
@@ -47,7 +134,10 @@ document.addEventListener("DOMContentLoaded", function() {
     document.body.appendChild(overlay);
 
     let cerrar = () => document.body.classList.remove('sidebar-open');
-    btn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+    btn.addEventListener('click', () => {
+        let abierto = document.body.classList.toggle('sidebar-open');
+        btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    });
     overlay.addEventListener('click', cerrar);
     aside.querySelectorAll('a').forEach(a => a.addEventListener('click', cerrar));
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
@@ -73,7 +163,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         // 2. Mostrar el nombre en el Header
         let userSpan = document.getElementById('nombreUsuarioHeader');
         if (userSpan) {
-        userSpan.innerHTML = `👤 ${sesion.nombre}`; 
+        userSpan.innerHTML = '<span class="ui-ico ui-ico-user"></span> ' + sesion.nombre;
         document.body.setAttribute('data-permisos', sesion.permisos.join(','));
         }
 
@@ -177,7 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let modalHTML = `
             <div id="modalCerrarSesion" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10000;">
                 <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center;">
-                    <div style="font-size: 2.5rem; margin-bottom: 10px;">🚪</div>
+                    <div style="font-size: 2.5rem; margin-bottom: 10px;"><span class="ui-ico ui-ico-door"></span></div>
                     <h3 style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.2rem;">¿Cerrar Sesión?</h3>
                     <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;">
                         Estás a punto de salir del sistema. Tendrás que ingresar tus credenciales nuevamente para acceder.
@@ -206,7 +296,7 @@ function mostrarConfirmacionCustom(mensaje, onConfirm, opciones = {}) {
         let modalHTML = `
             <div id="modalConfirmacionCustom" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
                 <div class="modal-card" style="max-width: 400px; width: 90%; padding: 24px; text-align: center;">
-                    <div id="iconoConfirmacion" style="font-size: 2.5rem; margin-bottom: 10px;">⚠️</div>
+                    <div id="iconoConfirmacion" style="font-size: 2.5rem; margin-bottom: 10px;"><span class="ui-ico ui-ico-warning"></span></div>
                     <h3 id="tituloConfirmacion" style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 1.2rem;">Confirmación</h3>
                     <p id="textoConfirmacion" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px;"></p>
                     <div style="display: flex; gap: 10px; justify-content: center;">
@@ -225,7 +315,9 @@ function mostrarConfirmacionCustom(mensaje, onConfirm, opciones = {}) {
 
     document.getElementById('textoConfirmacion').innerText = mensaje;
     document.getElementById('tituloConfirmacion').innerText = opciones.titulo || 'Confirmación';
-    document.getElementById('iconoConfirmacion').innerText = opciones.icono || '⚠️';
+    var mapaIconosConfirmacion = { '🗑️': 'trash', '⚠️': 'warning', '🚗': 'car', '📤': 'upload', '📥': 'download', '🔒': 'lock' };
+    var nombreIcono = mapaIconosConfirmacion[opciones.icono] || 'warning';
+    document.getElementById('iconoConfirmacion').innerHTML = '<span class="ui-ico ui-ico-' + nombreIcono + '"></span>';
     document.getElementById('btnAceptarConfirmacion').innerText = opciones.btnAceptar || 'Aceptar';
     document.getElementById('btnAceptarConfirmacion').style.background = opciones.colorBoton || '#ef4444';
 

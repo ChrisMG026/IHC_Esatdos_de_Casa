@@ -3,11 +3,28 @@ if (window.Chart) { Chart.defaults.font.family = "'Plus Jakarta Sans', 'Segoe UI
 
 let datosDashboard = null;
 
+// Devuelve un token CSS del tema activo, con valor de respaldo.
+function tokenCSS(nombre, fallback) {
+    let valor = getComputedStyle(document.body).getPropertyValue(nombre).trim();
+    return valor || fallback;
+}
+
 // Colores de texto y líneas de las gráficas según el tema activo (claro u oscuro)
 function ajustarColoresGraficas() {
-    let estilos = getComputedStyle(document.body);
-    Chart.defaults.color = estilos.getPropertyValue('--text-secondary').trim() || '#94a3b8';
-    Chart.defaults.borderColor = estilos.getPropertyValue('--border-color').trim() || 'rgba(148,163,184,0.2)';
+    let colorTexto = tokenCSS('--text-secondary', '#94a3b8');
+    let colorBorde = tokenCSS('--border-color', 'rgba(148,163,184,0.2)');
+    Chart.defaults.color = colorTexto;
+    Chart.defaults.borderColor = colorBorde;
+    if (Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
+        Chart.defaults.plugins.legend.labels.color = colorTexto;
+    }
+    if (Chart.defaults.plugins && Chart.defaults.plugins.tooltip) {
+        Chart.defaults.plugins.tooltip.backgroundColor = tokenCSS('--bg-card', '#111827');
+        Chart.defaults.plugins.tooltip.titleColor = colorTexto;
+        Chart.defaults.plugins.tooltip.bodyColor = colorTexto;
+        Chart.defaults.plugins.tooltip.borderColor = colorBorde;
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+    }
 }
 
 function pintarDashboard(res) {
@@ -38,6 +55,7 @@ async function cargarDashboard() {
         }
     } catch (e) {
         console.error("Error al cargar dashboard:", e);
+        window.UIEstados.mostrarErrorGlobal('No se pudo cargar el panel.');
     }
 }
 
@@ -75,13 +93,13 @@ function renderChartNiveles(niveles) {
                 {
                     label: 'Habitados',
                     data: ocupados,
-                    backgroundColor: '#6366f1',
+                    backgroundColor: tokenCSS('--accent-color', '#1d4ed8'),
                     borderRadius: 6
                 },
                 {
                     label: 'Total de espacios',
                     data: totales,
-                    backgroundColor: 'rgba(148, 163, 184, 0.38)',
+                    backgroundColor: tokenCSS('--border-color', 'rgba(148,163,184,0.38)'),
                     borderRadius: 6
                 }
             ]
@@ -112,7 +130,7 @@ function renderChartContratos(kpis) {
             labels: ['Vigentes', 'Por vencer (30 días)', 'Vencidos'],
             datasets: [{
                 data: [vigentes, kpis.por_vencer, kpis.vencidos],
-                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                backgroundColor: [tokenCSS('--success', '#047857'), tokenCSS('--warning', '#b45309'), tokenCSS('--danger', '#b91c1c')],
                 borderWidth: 0
             }]
         },
@@ -135,7 +153,7 @@ function renderChartGeneroGeneral(genero) {
             labels: ['Hombres ♂', 'Mujeres ♀'],
             datasets: [{
                 data: [genero.hombres, genero.mujeres],
-                backgroundColor: ['#3b82f6', '#ec4899'],
+                backgroundColor: [tokenCSS('--info', '#0369a1'), tokenCSS('--purple', '#6d28d9')],
                 borderWidth: 0
             }]
         },
@@ -166,13 +184,13 @@ function renderChartGeneroNivel(generoNivel) {
                 {
                     label: 'Hombres ♂',
                     data: hombres,
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: tokenCSS('--info', '#0369a1'),
                     borderRadius: 6
                 },
                 {
                     label: 'Mujeres ♀',
                     data: mujeres,
-                    backgroundColor: '#ec4899',
+                    backgroundColor: tokenCSS('--purple', '#6d28d9'),
                     borderRadius: 6
                 }
             ]
@@ -194,14 +212,14 @@ function renderUltimosMovimientos(movimientos) {
     tbody.innerHTML = '';
 
     if (!movimientos || movimientos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-secondary);">No hay movimientos recientes.</td></tr>`;
+        tbody.innerHTML = UIEstados.filaVacia(4, 'Sin movimientos', 'Los move-in y move-out aparecerán aquí.', 'clock');
         return;
     }
 
     movimientos.forEach(m => {
         let badge = m.tipo === 'Move-In' 
-            ? `<span class="badge-status status-green">📥 Move-In</span>` 
-            : `<span class="badge-status status-red">📤 Move-Out</span>`;
+            ? `<span class="badge-status status-green"><span class="ui-ico ui-ico-download"></span> Move-In</span>` 
+            : `<span class="badge-status status-red"><span class="ui-ico ui-ico-upload"></span> Move-Out</span>`;
 
         tbody.innerHTML += `
             <tr>
@@ -218,7 +236,7 @@ function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     let esOscuro = document.body.classList.contains('dark-mode');
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
-    document.getElementById('themeIcon').innerText = esOscuro ? '☀️' : '🌙';
+    document.getElementById('themeIcon').textContent = '';
     document.getElementById('themeText').innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
     if (datosDashboard) pintarDashboard(datosDashboard);
 }
@@ -229,7 +247,7 @@ window.onload = function() {
 
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').innerText = '☀️';
+        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').textContent = '';
         if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarDashboard();

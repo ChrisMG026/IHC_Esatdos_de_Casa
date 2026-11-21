@@ -77,6 +77,7 @@ async function cargarResidentesDesdeBD() {
         actualizarBadgeSidebarYNotificaciones();
     } catch (error) {
         console.error("Error al conectar con la base de datos:", error);
+        window.UIEstados.mostrarErrorGlobal('No se pudo cargar el catálogo de residentes.');
         mostrarNotificacion('No se pudo conectar con el servidor. Revisa la red e inténtalo de nuevo.', 'error');
     }
 }
@@ -86,7 +87,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     if (!container) return;
     let toast = document.createElement('div');
     toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-    let icono = tipo === 'success' ? '✅' : '❌';
+    let icono = tipo === 'success' ? '<span class="ui-ico ui-ico-check"></span>' : '<span class="ui-ico ui-ico-close"></span>';
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 8000);
@@ -111,7 +112,7 @@ function actualizarBadgeSidebarYNotificaciones() {
 
     if (listaContenido) {
         if (total === 0) {
-            listaContenido.innerHTML = '<p style="font-size:0.85rem; color:var(--text-secondary); text-align:center; padding:10px 0;">No hay contratos pendientes ni por vencer.</p>';
+            listaContenido.innerHTML = UIEstados.vacio('Sin contratos pendientes', 'No hay contratos por vencer en los próximos días.', 'calendar');
         } else {
             listaContenido.innerHTML = '';
             pendientes.forEach(res => {
@@ -127,10 +128,10 @@ function actualizarBadgeSidebarYNotificaciones() {
                         </div>
                         <div style="display: flex; gap: 6px; justify-content: flex-end;">
                             <button class="btn-danger" onclick="iniciarMoveOutDesdeNotif('${res.nomenclatura}')">
-                                🚪 Move-Out
+                                <span class="ui-ico ui-ico-door"></span> Move-Out
                             </button>
                             <button class="btn-success" onclick="irARenovarContrato('${res.nomenclatura}')">
-                                🔄 Renovar
+                                <span class="ui-ico ui-ico-refresh"></span> Renovar
                             </button>
                         </div>
                     </div>
@@ -169,14 +170,14 @@ function iniciarMoveOutDesdeNotif(nomenclatura) {
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; color: var(--text-primary); line-height: 1.6;">
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <p style="margin: 0;"><strong>📞 Teléfono:</strong> ${res.telefono || 'No registrado'}</p>
-                    <p style="margin: 0;"><strong>✉️ Correo:</strong> ${res.correo || 'No registrado'}</p>
-                    <p style="margin: 0;"><strong>📍 Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-phone"></span> Teléfono:</strong> ${res.telefono || 'No registrado'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-mail"></span> Correo:</strong> ${res.correo || 'No registrado'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-pin"></span> Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'}</p>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <p style="margin: 0;"><strong>🛏️ Recámara / Cama:</strong> Recámara ${recamaraLetra} - Cama ${camaNum}</p>
-                    <p style="margin: 0;"><strong>💵 Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
-                    <p style="margin: 0;"><strong>📅 Fecha Move-In:</strong> ${res.fecha_move_in || 'N/A'}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-bed"></span> Recámara / Cama:</strong> Recámara ${recamaraLetra} - Cama ${camaNum}</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-cash"></span> Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
+                    <p style="margin: 0;"><strong><span class="ui-ico ui-ico-calendar"></span> Fecha Move-In:</strong> ${res.fecha_move_in || 'N/A'}</p>
                 </div>
             </div>
         </div>
@@ -274,20 +275,20 @@ function renderTabla(datos) {
         
         let tieneAuto = (item.tiene_carro && item.tiene_carro.toLowerCase() === 'si') || (item.cajon && item.cajon.trim() !== '');
         let badgeVehiculo = tieneAuto 
-            ? `<span class="badge-status status-green" title="${item.cajon || 'Con Auto'}">🚗 ${item.cajon || 'Si'}</span>` 
-            : `<span style="color: var(--text-secondary); font-size: 0.85rem;">🚫 No</span>`;
+            ? `<span class="badge-status status-green" title="${item.cajon || 'Con Auto'}"><span class="ui-ico ui-ico-car"></span> ${item.cajon || 'Si'}</span>` 
+            : `<span style="color: var(--text-secondary); font-size: 0.85rem;"><span class="ui-ico ui-ico-close"></span> No</span>`;
 
         let estaBloqueadoPorOtro = item.bloqueado_por && item.bloqueado_por_id && (parseInt(item.bloqueado_por_id) !== usuarioActualId);
         let badgeBloqueo = estaBloqueadoPorOtro 
-            ? `<span class="badge-lock" title="Modificando actualmente: ${item.bloqueado_por}">🔒 En edición (${item.bloqueado_por})</span>` 
+            ? `<span class="badge-lock" title="Modificando actualmente: ${item.bloqueado_por}"><span class="ui-ico ui-ico-lock"></span> En edición (${item.bloqueado_por})</span>` 
             : '';
 
         let btnEditarHtml = '';
         if (puedeEditarResidentes) {
             if (estaBloqueadoPorOtro) {
-                btnEditarHtml = `<button class="btn-table" onclick="editarResidente(${indexOriginal})" style="border-color: #f59e0b; background: rgba(245, 158, 11, 0.1);" title="Modificado actualmente por ${item.bloqueado_por}">🔒</button>`;
+                btnEditarHtml = `<button class="btn-table" onclick="editarResidente(${indexOriginal})" style="border-color: var(--warning); background: var(--warning-soft);" title="Modificado actualmente por ${item.bloqueado_por}"><span class="ui-ico ui-ico-lock"></span></button>`;
             } else {
-                btnEditarHtml = `<button class="btn-table" onclick="editarResidente(${indexOriginal})" title="Editar">✏️</button>`;
+                btnEditarHtml = `<button class="btn-table" onclick="editarResidente(${indexOriginal})" title="Editar"><span class="ui-ico ui-ico-edit"></span></button>`;
             }
         }
 
@@ -310,9 +311,9 @@ function renderTabla(datos) {
                 <td><span class="badge-status ${badgeStatusClass}">${item.status}</span></td>
                 <td style="text-align: center;">
                     <div style="display: flex; gap: 4px; justify-content: center;">
-                         <button class="btn-table btn-details" onclick="verDetalles(${indexOriginal})" title="Ver detalles">👁️</button> 
+                         <button class="btn-table btn-details" onclick="verDetalles(${indexOriginal})" title="Ver detalles"><span class="ui-ico ui-ico-eye"></span></button> 
                          ${btnEditarHtml}
-                        <button class="btn-table" onclick="generarCredencialResidente(${indexOriginal})" title="Imprimir Credencial / Expediente">🪪</button>
+                        <button class="btn-table" onclick="generarCredencialResidente(${indexOriginal})" title="Imprimir Credencial / Expediente"><span class="ui-ico ui-ico-card"></span></button>
                     </div>
                 </td>
             </tr>
@@ -427,7 +428,7 @@ function generarCredencialResidente(index) {
         <body>
             <div class="card">
                 <div class="header">
-                    <div class="logo">🏢 U-TOWER RESIDENCIAL</div>
+                    <div class="logo"><span class="ui-ico ui-ico-building"></span> U-TOWER RESIDENCIAL</div>
                     <div class="badge-nom">${res.nomenclatura}</div>
                 </div>
 
@@ -1040,7 +1041,7 @@ function imprimirQRDesdePostAlta() {
         </head>
         <body>
             <div class="card">
-                <div class="logo">🏢 U-TOWER RESIDENCIAL</div>
+                <div class="logo"><span class="ui-ico ui-ico-building"></span> U-TOWER RESIDENCIAL</div>
                 <div style="font-size: 14px; font-weight: bold;">PASE DE ACCESO VEHICULAR</div>
                 <div id="qrcode"></div>
                 <div class="tag-code">TAG: ${tag}</div>
@@ -1082,7 +1083,7 @@ function generarCredencialObjeto(res) {
         <body>
             <div class="card">
                 <div class="header">
-                    <div class="logo">🏢 U-TOWER RESIDENCIAL</div>
+                    <div class="logo"><span class="ui-ico ui-ico-building"></span> U-TOWER RESIDENCIAL</div>
                     <div class="badge-nom">${res.nomenclatura}</div>
                 </div>
 
@@ -1146,14 +1147,14 @@ function procesarSalidaSeleccionados() {
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; color: var(--text-primary); line-height: 1.6;">
                         <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <p style="margin: 0;"><strong>📞 Teléfono:</strong> ${res.telefono || 'No registrado'}</p>
-                            <p style="margin: 0;"><strong>✉️ Correo:</strong> ${res.correo || 'No registrado'}</p>
-                            <p style="margin: 0;"><strong>📍 Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'}</p>
+                            <p style="margin: 0;"><strong><span class="ui-ico ui-ico-phone"></span> Teléfono:</strong> ${res.telefono || 'No registrado'}</p>
+                            <p style="margin: 0;"><strong><span class="ui-ico ui-ico-mail"></span> Correo:</strong> ${res.correo || 'No registrado'}</p>
+                            <p style="margin: 0;"><strong><span class="ui-ico ui-ico-pin"></span> Ubicación:</strong> Nivel ${res.nivel || 'N/A'} - Dep. ${res.dep || 'N/A'}</p>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 6px;">
-                            <p style="margin: 0;"><strong>🛏️ Recámara / Cama:</strong> Recámara ${recamaraLetra} - Cama ${camaNum}</p>
-                            <p style="margin: 0;"><strong>💵 Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
-                            <p style="margin: 0;"><strong>📅 Fecha Move-In:</strong> ${res.fecha_move_in || 'N/A'}</p>
+                            <p style="margin: 0;"><strong><span class="ui-ico ui-ico-bed"></span> Recámara / Cama:</strong> Recámara ${recamaraLetra} - Cama ${camaNum}</p>
+                            <p style="margin: 0;"><strong><span class="ui-ico ui-ico-cash"></span> Renta:</strong> $${parseFloat(res.renta || 0).toLocaleString('es-MX')} MXN</p>
+                            <p style="margin: 0;"><strong><span class="ui-ico ui-ico-calendar"></span> Fecha Move-In:</strong> ${res.fecha_move_in || 'N/A'}</p>
                         </div>
                     </div>
                 </div>
@@ -1226,7 +1227,7 @@ function toggleDarkMode() {
     
     let icon = document.getElementById('themeIcon');
     let text = document.getElementById('themeText');
-    if (icon) icon.innerText = esOscuro ? '☀️' : '🌙';
+    if (icon) icon.textContent = '';
     if (text) text.innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
@@ -1244,7 +1245,7 @@ window.onload = function() {
 
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').innerText = '☀️';
+        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').textContent = '';
         if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarResidentesDesdeBD();
@@ -1303,7 +1304,7 @@ async function procesarCargaMasivaDev(e) {
 
     let btn = document.getElementById('btnProcesarDev');
     btn.disabled = true;
-    btn.innerText = '🔄 Procesando datos masivos...';
+    btn.innerHTML = '<span class="ui-ico ui-ico-refresh"></span> Procesando datos masivos...';
 
     let formData = new FormData();
     formData.append('archivo_csv', fileInput.files[0]);
@@ -1329,6 +1330,6 @@ async function procesarCargaMasivaDev(e) {
         mostrarNotificacion('Ocurrió un error al procesar la carga masiva.', 'error');
     } finally {
         btn.disabled = false;
-        btn.innerText = '⚡ Ejecutar Reemplazo Masivo';
+        btn.innerHTML = '<span class="ui-ico ui-ico-bolt"></span> Ejecutar Reemplazo Masivo';
     }
 }

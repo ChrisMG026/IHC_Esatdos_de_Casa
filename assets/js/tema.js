@@ -3,7 +3,7 @@
     function actualizarBoton(oscuro) {
         var i = document.getElementById('themeIcon');
         var t = document.getElementById('themeText');
-        if (i) i.innerText = oscuro ? '☀️' : '🌙';
+        if (i) i.textContent = '';
         if (t) t.innerText = oscuro ? 'Modo Claro' : 'Modo Oscuro';
     }
 
@@ -25,7 +25,7 @@
         if (!inp) return;
         var visible = inp.type === 'text';
         inp.type = visible ? 'password' : 'text';
-        btn.innerText = visible ? '👁️' : '🙈';
+        btn.innerHTML = '<span class="ui-ico ui-ico-' + (visible ? 'eye' : 'lock') + '"></span>';
         btn.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
     };
 })();

@@ -38,7 +38,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     if (!container) return;
     let toast = document.createElement('div');
     toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-    let icono = tipo === 'success' ? '✅' : '❌';
+    let icono = tipo === 'success' ? '<span class="ui-ico ui-ico-check"></span>' : '<span class="ui-ico ui-ico-close"></span>';
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 5000);

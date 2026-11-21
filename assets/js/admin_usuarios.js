@@ -21,6 +21,7 @@ async function cargarDatosAdmin() {
         }
     } catch (e) {
         console.error(e);
+        window.UIEstados.mostrarErrorGlobal('No se pudo cargar usuarios y roles.');
         mostrarNotificacion("Error de conexión con la base de datos.", 'error');
     }
 }
@@ -49,7 +50,7 @@ function renderTablaUsuarios(usuarios) {
 
         let botones = u.id_usuario == 1 
             ? `<span style="color:var(--text-secondary); font-size:0.8rem; font-weight:600;">Protegido</span>`
-            : `<button class="btn-table" onclick="abrirModalEditarUsuario(${u.id_usuario}, ${u.id_rol}, ${u.activo})" title="Editar">✏️ Editar</button>`;
+            : `<button class="btn-table" onclick="abrirModalEditarUsuario(${u.id_usuario}, ${u.id_rol}, ${u.activo})" title="Editar"><span class="ui-ico ui-ico-edit"></span> Editar</button>`;
 
         tbody.innerHTML += `
             <tr>
@@ -266,12 +267,12 @@ function renderTablaRoles(roles) {
             : '<span style="color: var(--text-secondary);">Ninguno</span>';
 
         let proteccion = r.es_admin_principal == 1 
-            ? `<span class="badge-status" style="background:#fef9c3; color:#a16207; border: 1px solid #eab308;">🔒 Protegido</span>` 
+            ? `<span class="badge-status" style="background:var(--warning-soft); color:var(--warning); border: 1px solid var(--warning);"><span class="ui-ico ui-ico-lock"></span> Protegido</span>` 
             : `-`;
 
         let btnEditar = r.es_admin_principal == 1 
-            ? `<button class="btn-table" disabled title="El rol de Admin principal no se puede editar" style="opacity:0.5; cursor:not-allowed;">✏️ Editar</button>`
-            : `<button class="btn-table" onclick="abrirModalEditarRol(${r.id_rol})">✏️ Editar</button>`;
+            ? `<button class="btn-table" disabled title="El rol de Admin principal no se puede editar" style="opacity:0.5; cursor:not-allowed;"><span class="ui-ico ui-ico-edit"></span> Editar</button>`
+            : `<button class="btn-table" onclick="abrirModalEditarRol(${r.id_rol})"><span class="ui-ico ui-ico-edit"></span> Editar</button>`;
 
         tbody.innerHTML += `
             <tr>
@@ -370,7 +371,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     if (!container) return;
     let toast = document.createElement('div');
     toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-    let icono = tipo === 'success' ? '✅' : '❌';
+    let icono = tipo === 'success' ? '<span class="ui-ico ui-ico-check"></span>' : '<span class="ui-ico ui-ico-close"></span>';
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 5000);
@@ -382,7 +383,7 @@ function toggleDarkMode() {
     localStorage.setItem('theme', esOscuro ? 'dark' : 'light');
     let icon = document.getElementById('themeIcon');
     let text = document.getElementById('themeText');
-    if (icon) icon.innerText = esOscuro ? '☀️' : '🌙';
+    if (icon) icon.textContent = '';
     if (text) text.innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
@@ -395,7 +396,7 @@ async function cargarLogs() {
         if (data.status === 'success') {
             tbody.innerHTML = '';
             if (data.logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">No hay actividad registrada.</td></tr>`;
+                tbody.innerHTML = UIEstados.filaVacia(5, 'Sin actividad', 'Todavía no hay movimientos en el historial.', 'clock');
                 return;
             }
 
@@ -433,7 +434,9 @@ function cerrarModalUsuario() {
 function mostrarConfirmacionCustom(mensaje, onConfirm, opciones = {}) {
     document.getElementById('textoConfirmacion').innerText = mensaje;
     document.getElementById('tituloConfirmacion').innerText = opciones.titulo || 'Confirmación';
-    document.getElementById('iconoConfirmacion').innerText = opciones.icono || '⚠️';
+    var mapaIconosConfirmacion = { '🗑️': 'trash', '⚠️': 'warning', '🚗': 'car', '📤': 'upload', '📥': 'download', '🔒': 'lock' };
+    var nombreIcono = mapaIconosConfirmacion[opciones.icono] || 'warning';
+    document.getElementById('iconoConfirmacion').innerHTML = '<span class="ui-ico ui-ico-' + nombreIcono + '"></span>';
     document.getElementById('btnAceptarConfirmacion').innerText = opciones.btnAceptar || 'Aceptar';
     document.getElementById('btnAceptarConfirmacion').style.background = opciones.colorBoton || '#ef4444';
     document.getElementById('btnCancelarConfirmacion').style.display = opciones.ocultarCancelar ? 'none' : 'block';

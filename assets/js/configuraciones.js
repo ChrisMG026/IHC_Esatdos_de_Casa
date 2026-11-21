@@ -111,7 +111,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     if (!container) return;
     let toast = document.createElement('div');
     toast.className = `app-toast ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-    let icono = tipo === 'success' ? '✅' : '❌';
+    let icono = tipo === 'success' ? '<span class="ui-ico ui-ico-check"></span>' : '<span class="ui-ico ui-ico-close"></span>';
     toast.innerHTML = `<span style="font-size: 1.2rem;">${icono}</span> <span style="flex: 1;">${mensaje}</span>`;
     container.appendChild(toast);
     setTimeout(() => { toast.remove(); }, 8000);
@@ -141,6 +141,7 @@ async function cargarDatosConfig() {
         }
     } catch (e) {
         console.error("Error de conexión:", e);
+        window.UIEstados.mostrarErrorGlobal('No se pudo cargar la configuración.');
         mostrarNotificacion("No se pudo conectar con el servidor. Inténtalo de nuevo.", 'error');
     }
 }
@@ -241,13 +242,13 @@ function renderTablaLlaves() {
     let datosPagina = llavesFiltradas.slice(inicio, fin);
 
     if (datosPagina.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-secondary); padding: 20px;">No se encontraron registros.</td></tr>`;
+        tbody.innerHTML = UIEstados.filaVacia(4, 'Sin registros', 'No hay información disponible para este filtro.', 'box');
     } else {
         datosPagina.forEach(item => {
             
             // 2. AQUÍ ADENTRO definimos los botones, ya que 'item' existe
             let botonEditarHTML = puedeEditarClaves 
-                ? `<button id="btnEdit_${item.numero_departamento}" onclick="solicitarPermisoCambio('${item.numero_departamento}')" style="background:#f59e0b; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Editar</button>` 
+                ? `<button id="btnEdit_${item.numero_departamento}" onclick="solicitarPermisoCambio('${item.numero_departamento}')" style="background:var(--warning-strong); color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8rem;">Editar</button>` 
                 : '';
 
             let botonGuardarHTML = puedeEditarClaves
@@ -313,11 +314,11 @@ function renderTablaDepartamentos() {
     let datosPagina = departamentosFiltrados.slice(inicio, fin);
 
     if (datosPagina.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-secondary); padding: 20px;">No se encontraron departamentos registrados.</td></tr>`;
+        tbody.innerHTML = UIEstados.filaVacia(8, 'Sin departamentos', 'Registra un departamento para comenzar.', 'building');
     } else {
         datosPagina.forEach(dep => {
             let esDeshabilitado = dep.estado === 'Deshabilitado';
-            let btnText = esDeshabilitado ? '✔️ Habilitar' : '🚫 Deshabilitar';
+            let btnText = esDeshabilitado ? '<span class="ui-ico ui-ico-check"></span> Habilitar' : '<span class="ui-ico ui-ico-close"></span> Deshabilitar';
             let btnClass = esDeshabilitado ? 'btn-enabled' : 'btn-disabled';
 
             tbody.innerHTML += `
@@ -370,7 +371,7 @@ async function toggleEstadoDepartamento(nomenclatura, estadoActual) {
     let modalBtnConfirmar = document.getElementById('btnConfirmarRazonDep');
 
     if (nuevoEstado === 'Deshabilitado') {
-        modalTitulo.innerText = '⚠️ Deshabilitar Departamento';
+        modalTitulo.innerHTML = '<span class="ui-ico ui-ico-warning"></span> Deshabilitar Departamento';
         modalTitulo.style.color = '#ef4444';
         document.getElementById('modalRazonTexto').innerText = `Indique la razón obligatoria por la cual desea deshabilitar el departamento ${nomenclatura}:`;
         if (modalBtnConfirmar) {
@@ -378,7 +379,7 @@ async function toggleEstadoDepartamento(nomenclatura, estadoActual) {
             modalBtnConfirmar.style.background = '#ef4444';
         }
     } else {
-        modalTitulo.innerText = '✅ Habilitar Departamento';
+        modalTitulo.innerHTML = '<span class="ui-ico ui-ico-check"></span> Habilitar Departamento';
         modalTitulo.style.color = '#10b981';
         document.getElementById('modalRazonTexto').innerText = `Indique la razón obligatoria por la cual desea volver a habilitar el departamento ${nomenclatura}:`;
         if (modalBtnConfirmar) {
@@ -457,11 +458,11 @@ function renderTablaCajones() {
     let datosPagina = cajonesFiltrados.slice(inicio, fin);
 
     if (datosPagina.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: var(--text-secondary); padding: 20px;">No se encontraron cajones registrados.</td></tr>`;
+        tbody.innerHTML = UIEstados.filaVacia(3, 'Sin cajones', 'Registra un cajón de estacionamiento para comenzar.', 'car');
     } else {
         datosPagina.forEach(cajon => {
             let esDeshabilitado = cajon.estado === 'Deshabilitado';
-            let btnText = esDeshabilitado ? '✔️ Habilitar' : '🚫 Deshabilitar';
+            let btnText = esDeshabilitado ? '<span class="ui-ico ui-ico-check"></span> Habilitar' : '<span class="ui-ico ui-ico-close"></span> Deshabilitar';
             let btnClass = esDeshabilitado ? 'btn-enabled' : 'btn-disabled';
 
             tbody.innerHTML += `
@@ -494,7 +495,7 @@ function toggleEstadoCajon(nombreCajon, estadoActual) {
     let modalBtnConfirmar = document.getElementById('btnConfirmarRazonDep');
 
     if (nuevoEstado === 'Deshabilitado') {
-        modalTitulo.innerText = '⚠️ Deshabilitar Cajón';
+        modalTitulo.innerHTML = '<span class="ui-ico ui-ico-warning"></span> Deshabilitar Cajón';
         modalTitulo.style.color = '#ef4444';
         document.getElementById('modalRazonTexto').innerText = `Indique la razón obligatoria por la cual desea deshabilitar el cajón ${nombreCajon}:`;
         if (modalBtnConfirmar) {
@@ -502,7 +503,7 @@ function toggleEstadoCajon(nombreCajon, estadoActual) {
             modalBtnConfirmar.style.background = '#ef4444';
         }
     } else {
-        modalTitulo.innerText = '✅ Habilitar Cajón';
+        modalTitulo.innerHTML = '<span class="ui-ico ui-ico-check"></span> Habilitar Cajón';
         modalTitulo.style.color = '#10b981';
         document.getElementById('modalRazonTexto').innerText = `Indique la razón obligatoria por la cual desea volver a habilitar el cajón ${nombreCajon}:`;
         if (modalBtnConfirmar) {
@@ -720,7 +721,7 @@ function toggleDarkMode() {
     
     let icon = document.getElementById('themeIcon');
     let text = document.getElementById('themeText');
-    if (icon) icon.innerText = esOscuro ? '☀️' : '🌙';
+    if (icon) icon.textContent = '';
     if (text) text.innerText = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
 }
 
@@ -730,7 +731,7 @@ window.onload = function() {
 
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').innerText = '☀️';
+        if(document.getElementById('themeIcon')) document.getElementById('themeIcon').textContent = '';
         if(document.getElementById('themeText')) document.getElementById('themeText').innerText = 'Modo Claro';
     }
     cargarDatosConfig();
